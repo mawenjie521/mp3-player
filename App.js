@@ -168,8 +168,88 @@ function Controls({ isPlaying, onPrev, onNext, onTogglePlay, loopOn, onToggleLoo
   );
 }
 
+function PlayerScreen({
+  currentTrack,
+  isPlaying,
+  position,
+  duration,
+  loopOn,
+  spin,
+  onTogglePlay,
+  onSkipNext,
+  onSkipPrev,
+  onSeek,
+  onToggleLoop,
+  onBack,
+}) {
+  const lyricIndex = useMemo(() => {
+    if (!currentTrack || !currentTrack.lyrics || !duration) return 0;
+    const idx = Math.floor((position / duration) * currentTrack.lyrics.length);
+    return Math.min(idx, currentTrack.lyrics.length - 1);
+  }, [position, duration, currentTrack]);
+
+  const formatTime = (seconds) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = Math.floor(seconds % 60);
+    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
+  };
+
+  if (!currentTrack) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.loading}>请选择歌曲</Text>
+      </View>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.glowTop} />
+
+      <View style={styles.topBar}>
+        <TouchableOpacity onPress={onBack} style={styles.topBackButton}>
+          <Text style={styles.topIcon}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.topTitle} numberOfLines={1}>{currentTrack.title}</Text>
+        <Text style={styles.topIcon}>⤴</Text>
+      </View>
+
+      <View style={styles.vinylStage}>
+        <Vinyl artwork={currentTrack.artwork} spin={spin} />
+        <Tonearm isPlaying={isPlaying} />
+      </View>
+
+      <Lyrics lines={currentTrack.lyrics || []} currentIndex={lyricIndex} />
+
+      <Slider
+        style={styles.slider}
+        minimumValue={0}
+        maximumValue={duration}
+        value={position}
+        onSlidingComplete={onSeek}
+        minimumTrackTintColor="#C20C0C"
+        maximumTrackTintColor="#ffffff20"
+        thumbTintColor="#ffffff"
+      />
+      <View style={styles.timeContainer}>
+        <Text style={styles.time}>{formatTime(position)}</Text>
+        <Text style={styles.time}>{formatTime(duration)}</Text>
+      </View>
+
+      <Controls
+        isPlaying={isPlaying}
+        onPrev={onSkipPrev}
+        onNext={onSkipNext}
+        onTogglePlay={onTogglePlay}
+        loopOn={loopOn}
+        onToggleLoop={onToggleLoop}
+      />
+    </SafeAreaView>
+  );
+}
+
 export default function App() {
-  const [currentTrack, setCurrentTrack] = useState(playlist[0]);
+  const [currentTrack, setCurrentTrack] = useState(null);
   const playbackState = usePlaybackState();
   const { position, duration } = useProgress();
   const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
@@ -179,12 +259,6 @@ export default function App() {
   const spinAnim = useRef(null);
 
   const isPlaying = playbackState.state === State.Playing;
-
-  const lyricIndex = useMemo(() => {
-    if (!currentTrack.lyrics || !duration) return 0;
-    const idx = Math.floor((position / duration) * currentTrack.lyrics.length);
-    return Math.min(idx, currentTrack.lyrics.length - 1);
-  }, [position, duration, currentTrack]);
 
   useEffect(() => {
     initPlayer();
@@ -228,6 +302,7 @@ export default function App() {
   };
 
   const togglePlayback = async () => {
+    if (!currentTrack) return;
     if (isPlaying) {
       await TrackPlayer.pause();
     } else {
@@ -251,12 +326,6 @@ export default function App() {
     await TrackPlayer.seekTo(value);
   };
 
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-  };
-
   if (!isPlayerInitialized) {
     return (
       <View style={styles.container}>
@@ -266,46 +335,20 @@ export default function App() {
   }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <View style={styles.glowTop} />
-
-      <View style={styles.topBar}>
-        <Text style={styles.topIcon}>‹</Text>
-        <Text style={styles.topTitle} numberOfLines={1}>{currentTrack.title}</Text>
-        <Text style={styles.topIcon}>⤴</Text>
-      </View>
-
-      <View style={styles.vinylStage}>
-        <Vinyl artwork={currentTrack.artwork} spin={spin} />
-        <Tonearm isPlaying={isPlaying} />
-      </View>
-
-      <Lyrics lines={currentTrack.lyrics || []} currentIndex={lyricIndex} />
-
-      <Slider
-        style={styles.slider}
-        minimumValue={0}
-        maximumValue={duration}
-        value={position}
-        onSlidingComplete={seekTo}
-        minimumTrackTintColor="#C20C0C"
-        maximumTrackTintColor="#ffffff20"
-        thumbTintColor="#ffffff"
-      />
-      <View style={styles.timeContainer}>
-        <Text style={styles.time}>{formatTime(position)}</Text>
-        <Text style={styles.time}>{formatTime(duration)}</Text>
-      </View>
-
-      <Controls
-        isPlaying={isPlaying}
-        onPrev={skipToPrevious}
-        onNext={skipToNext}
-        onTogglePlay={togglePlayback}
-        loopOn={loopOn}
-        onToggleLoop={() => setLoopOn((v) => !v)}
-      />
-    </SafeAreaView>
+    <PlayerScreen
+      currentTrack={currentTrack}
+      isPlaying={isPlaying}
+      position={position}
+      duration={duration}
+      loopOn={loopOn}
+      spin={spin}
+      onTogglePlay={togglePlayback}
+      onSkipNext={skipToNext}
+      onSkipPrev={skipToPrevious}
+      onSeek={seekTo}
+      onToggleLoop={() => setLoopOn((v) => !v)}
+      onBack={() => {}}
+    />
   );
 }
 
@@ -335,6 +378,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 24,
     paddingVertical: 12,
     marginTop: 16,
+  },
+  topBackButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
   },
   topIcon: {
     fontSize: 24,
