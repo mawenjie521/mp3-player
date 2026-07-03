@@ -1,7 +1,7 @@
 import { Dimensions } from "react-native";
 import { RepeatMode } from "react-native-track-player";
 
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
+export const SCREEN_WIDTH = Dimensions.get("window").width;
 
 export const VINYL_SIZE = Math.min(340, SCREEN_WIDTH - 48);
 export const ART_SIZE = Math.min(220, VINYL_SIZE - 120);

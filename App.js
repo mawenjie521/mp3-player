@@ -147,44 +147,33 @@ export default function App() {
     setView("list");
   };
 
+  let content;
   if (initError) {
-    return (
-      <ErrorBoundary>
-        <View style={styles.container}>
-          <Text style={styles.errorTitle}>加载失败</Text>
-          <Text style={styles.errorMessage}>{initError}</Text>
-          <TouchableOpacity onPress={retryInit} style={styles.retryButton}>
-            <Text style={styles.retryText}>重试</Text>
-          </TouchableOpacity>
-        </View>
-      </ErrorBoundary>
+    content = (
+      <View style={styles.container}>
+        <Text style={styles.errorTitle}>加载失败</Text>
+        <Text style={styles.errorMessage}>{initError}</Text>
+        <TouchableOpacity onPress={retryInit} style={styles.retryButton}>
+          <Text style={styles.retryText}>重试</Text>
+        </TouchableOpacity>
+      </View>
     );
-  }
-
-  if (!isPlayerInitialized) {
-    return (
-      <ErrorBoundary>
-        <View style={styles.container}>
-          <Text style={styles.loading}>加载中...</Text>
-        </View>
-      </ErrorBoundary>
+  } else if (!isPlayerInitialized) {
+    content = (
+      <View style={styles.container}>
+        <Text style={styles.loading}>加载中...</Text>
+      </View>
     );
-  }
-
-  if (view === "list") {
-    return (
-      <ErrorBoundary>
-        <PlaylistScreen
-          playlist={playlist}
-          currentTrack={currentTrack}
-          onSelect={onSelect}
-        />
-      </ErrorBoundary>
+  } else if (view === "list") {
+    content = (
+      <PlaylistScreen
+        playlist={playlist}
+        currentTrack={currentTrack}
+        onSelect={onSelect}
+      />
     );
-  }
-
-  return (
-    <ErrorBoundary>
+  } else {
+    content = (
       <PlayerScreen
         currentTrack={currentTrack}
         isPlaying={isPlaying}
@@ -199,8 +188,10 @@ export default function App() {
         onToggleRepeat={toggleRepeat}
         onBack={onBack}
       />
-    </ErrorBoundary>
-  );
+    );
+  }
+
+  return <ErrorBoundary>{content}</ErrorBoundary>;
 }
 
 const styles = StyleSheet.create({
