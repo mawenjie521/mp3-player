@@ -73,6 +73,12 @@ const { width: SCREEN_WIDTH } = Dimensions.get("window");
 const VINYL_SIZE = Math.min(340, SCREEN_WIDTH - 48);
 const ART_SIZE = Math.min(220, VINYL_SIZE - 120);
 
+const REPEAT_MAP = {
+  off: RepeatMode.Off,
+  queue: RepeatMode.Queue,
+  track: RepeatMode.Track,
+};
+
 function Vinyl({ artwork, spin }) {
   const spinDeg = spin.interpolate({
     inputRange: [0, 360],
@@ -142,13 +148,14 @@ function Lyrics({ lines, currentIndex }) {
   );
 }
 
-function Controls({ isPlaying, onPrev, onNext, onTogglePlay, loopOn, onToggleLoop }) {
+function Controls({ isPlaying, onPrev, onNext, onTogglePlay, repeatMode, onToggleRepeat }) {
   const accent = (on) => (on ? "#C20C0C" : "#b3b3b3");
+  const repeatIcon = repeatMode === "track" ? "🔂" : "🔁";
 
   return (
     <View style={styles.controls}>
-      <TouchableOpacity onPress={onToggleLoop} style={styles.sideButton}>
-        <Text style={[styles.sideIcon, { color: accent(loopOn) }]}>🔁</Text>
+      <TouchableOpacity onPress={onToggleRepeat} style={styles.sideButton}>
+        <Text style={[styles.sideIcon, { color: accent(repeatMode !== "off") }]}>{repeatIcon}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onPrev} style={styles.controlButton}>
@@ -162,10 +169,6 @@ function Controls({ isPlaying, onPrev, onNext, onTogglePlay, loopOn, onToggleLoo
       <TouchableOpacity onPress={onNext} style={styles.controlButton}>
         <Text style={styles.controlIcon}>⏭</Text>
       </TouchableOpacity>
-
-      <TouchableOpacity style={styles.sideButton}>
-        <Text style={styles.sideIcon}>☰</Text>
-      </TouchableOpacity>
     </View>
   );
 }
@@ -175,13 +178,13 @@ function PlayerScreen({
   isPlaying,
   position,
   duration,
-  loopOn,
+  repeatMode,
   spin,
   onTogglePlay,
   onSkipNext,
   onSkipPrev,
   onSeek,
-  onToggleLoop,
+  onToggleRepeat,
   onBack,
 }) {
   const lyricIndex = useMemo(() => {
@@ -243,8 +246,8 @@ function PlayerScreen({
         onPrev={onSkipPrev}
         onNext={onSkipNext}
         onTogglePlay={onTogglePlay}
-        loopOn={loopOn}
-        onToggleLoop={onToggleLoop}
+        repeatMode={repeatMode}
+        onToggleRepeat={onToggleRepeat}
       />
     </SafeAreaView>
   );
@@ -298,7 +301,7 @@ export default function App() {
   const playbackState = usePlaybackState();
   const { position, duration } = useProgress();
   const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
-  const [loopOn, setLoopOn] = useState(false);
+  const [repeatMode, setRepeatMode] = useState("off");
   const [view, setView] = useState("list");
 
   const spin = useRef(new Animated.Value(0)).current;
@@ -344,7 +347,16 @@ export default function App() {
   const initPlayer = async () => {
     await TrackPlayer.setupPlayer();
     await TrackPlayer.add(playlist);
+    await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
     setIsPlayerInitialized(true);
+  };
+
+  const toggleRepeat = () => {
+    setRepeatMode((prev) => {
+      const next = prev === "off" ? "queue" : prev === "queue" ? "track" : "off";
+      TrackPlayer.setRepeatMode(REPEAT_MAP[next]);
+      return next;
+    });
   };
 
   const togglePlayback = async () => {
@@ -408,13 +420,13 @@ export default function App() {
       isPlaying={isPlaying}
       position={position}
       duration={duration}
-      loopOn={loopOn}
+      repeatMode={repeatMode}
       spin={spin}
       onTogglePlay={togglePlayback}
       onSkipNext={skipToNext}
       onSkipPrev={skipToPrevious}
       onSeek={seekTo}
-      onToggleLoop={() => setLoopOn((v) => !v)}
+      onToggleRepeat={toggleRepeat}
       onBack={onBack}
     />
   );
