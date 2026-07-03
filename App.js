@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
+import { loadJSON, saveJSON } from "./src/data/storage";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import PlaylistScreen from "./src/screens/PlaylistScreen";
@@ -23,6 +24,9 @@ export default function App() {
   const [initError, setInitError] = useState(null);
   const [repeatMode, setRepeatMode] = useState("off");
   const [view, setView] = useState("list");
+  const [favorites, setFavorites] = useState([]);
+  const [recent, setRecent] = useState([]);
+  const [activeTab, setActiveTab] = useState("all");
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -55,6 +59,23 @@ export default function App() {
     });
     return () => sub.remove();
   }, []);
+
+  useEffect(() => {
+    loadJSON("@mp3player:favorites", []).then(setFavorites);
+  }, []);
+
+  useEffect(() => {
+    loadJSON("@mp3player:recent", []).then(setRecent);
+  }, []);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+    setRecent((prev) => {
+      const next = [currentTrack.id, ...prev.filter((id) => id !== currentTrack.id)].slice(0, 20);
+      saveJSON("@mp3player:recent", next);
+      return next;
+    });
+  }, [currentTrack?.id]);
 
   const startSpin = () => {
     if (spinAnim.current) return;
@@ -147,6 +168,14 @@ export default function App() {
     setView("list");
   };
 
+  const toggleFavorite = (id) => {
+    setFavorites((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      saveJSON("@mp3player:favorites", next);
+      return next;
+    });
+  };
+
   let content;
   if (initError) {
     content = (
@@ -170,6 +199,10 @@ export default function App() {
         playlist={playlist}
         currentTrack={currentTrack}
         onSelect={onSelect}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        favorites={favorites}
+        recent={recent}
       />
     );
   } else {
@@ -187,6 +220,8 @@ export default function App() {
         onSeek={seekTo}
         onToggleRepeat={toggleRepeat}
         onBack={onBack}
+        isFavorite={favorites.includes(currentTrack?.id)}
+        onToggleFavorite={toggleFavorite}
       />
     );
   }
