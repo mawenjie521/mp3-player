@@ -104,7 +104,7 @@ export async function loadImported() {
 
 export async function pickAndCopyTrack() {
   const result = await DocumentPicker.pick({
-    type: [DocumentPicker.types.audio],
+    type: ["audio/mpeg"],
   });
   const { uri: pickerUri, name } = result[0];
 
