@@ -1,0 +1,49 @@
+require_relative '../node_modules/react-native/scripts/react_native_pods'
+require_relative '../node_modules/@react-native-community/cli-platform-ios/native_modules'
+
+platform :ios, '13.4'
+install! 'cocoapods', :deterministic_uuids => false
+
+target 'MP3Player' do
+  use_frameworks! :linkage => :static
+  config = use_native_modules!
+
+  use_react_native!(
+    :path => config[:reactNativePath],
+    :hermes_enabled => true,
+    :app_path => "#{Pod::Config.instance.installation_root}/.."
+  )
+
+  target 'MP3PlayerTests' do
+    inherit! :complete
+  end
+
+
+  post_install do |installer|
+    react_native_post_install(
+      installer,
+      :mac_catalyst_enabled => false
+    )
+    # Workaround for Xcode 16.3 / iOS 18.4 SDK: std::char_traits<unsigned char>
+    # is no longer implicitly instantiable. folly::Range instantiates
+    # std::basic_string_view<unsigned char> via an is_trivial condition; restrict
+    # the string_view conversion path to char only.
+    folly_range = File.join(installer.sandbox.pod_dir('RCT-Folly'), 'folly/Range.h')
+    if File.exist?(folly_range)
+      src = File.read(folly_range)
+      patched = src.sub(
+        'std::is_trivial<std::remove_const_t<ValueType>>::value',
+        'std::is_same<std::remove_const_t<ValueType>, char>::value'
+      )
+      File.write(folly_range, patched) if patched != src && (File.chmod(0644, folly_range) || true)
+    end
+    # SwiftAudioEx (react-native-track-player dependency) does not compile in
+    # the Swift 6 language mode that Xcode 16.3 defaults to; pin to Swift 5.
+    installer.pods_project.targets.each do |target|
+      next unless target.name == 'SwiftAudioEx'
+      target.build_configurations.each do |config|
+        config.build_settings['SWIFT_VERSION'] = '5.0'
+      end
+    end
+  end
+end
