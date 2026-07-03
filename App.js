@@ -9,9 +9,10 @@ import {
   Dimensions,
   Animated,
   Easing,
+  Alert,
 } from "react-native";
 import Slider from "@react-native-community/slider";
-import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
+import TrackPlayer, { usePlaybackState, State, useProgress, RepeatMode } from "react-native-track-player";
 
 const playlist = [
   {
