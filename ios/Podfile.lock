@@ -1543,6 +1543,8 @@ PODS:
     - React-logger (= 0.75.4)
     - React-perflogger (= 0.75.4)
     - React-utils (= 0.75.4)
+  - RNCAsyncStorage (1.12.1):
+    - React-Core
   - SocketRocket (0.7.0)
   - SwiftAudioEx (1.1.0)
   - Yoga (0.0.0)
@@ -1613,6 +1615,7 @@ DEPENDENCIES:
   - React-utils (from `../node_modules/react-native/ReactCommon/react/utils`)
   - ReactCodegen (from `build/generated/ios`)
   - ReactCommon/turbomodule/core (from `../node_modules/react-native/ReactCommon`)
+  - "RNCAsyncStorage (from `../node_modules/@react-native-community/async-storage`)"
   - Yoga (from `../node_modules/react-native/ReactCommon/yoga`)
 
 SPEC REPOS:
@@ -1748,6 +1751,8 @@ EXTERNAL SOURCES:
     :path: build/generated/ios
   ReactCommon:
     :path: "../node_modules/react-native/ReactCommon"
+  RNCAsyncStorage:
+    :path: "../node_modules/@react-native-community/async-storage"
   Yoga:
     :path: "../node_modules/react-native/ReactCommon/yoga"
 
@@ -1815,6 +1820,7 @@ SPEC CHECKSUMS:
   React-utils: 0dbea1179726ad65a1b13470a3f3c73da98f4496
   ReactCodegen: f961bc28110632dd4c8e8d95c1a80f5344022cd2
   ReactCommon: 23eed247b5c8e57b59a823ce209353883da61dd2
+  RNCAsyncStorage: 87d0d3d6193e79bd435e955f8998d2040aa60d67
   SocketRocket: abac6f5de4d4d62d24e11868d7a2f427e0ef940d
   SwiftAudioEx: f6aa653770f3a0d3851edaf8d834a30aee4a7646
   Yoga: b05994d1933f507b0a28ceaa4fdb968dc18da178
