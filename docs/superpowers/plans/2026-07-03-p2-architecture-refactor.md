@@ -6,13 +6,13 @@
 
 **Architecture:** Incremental extraction. Each task moves code out of `App.js` into a focused module under `src/`, keeps styles co-located with their components, and verifies Metro bundle builds before committing. Pure refactor — P1 behavior (three-state loop, layered error handling, playback logic) is preserved exactly.
 
-**Tech Stack:** React Native 0.75.4, React 18.3.1, react-native-track-player 4.1.1, `@react-native-community/slider` 5.2.0, **new:** `@react-native-community/async-storage`.
+**Tech Stack:** React Native 0.75.4, React 18.3.1, react-native-track-player 4.1.1, `@react-native-community/slider` 5.2.0, **new:** `@react-native-async-storage/async-storage`.
 
 ## Global Constraints
 
 - React Native 0.75.4, React 18.3.1 (do not change versions).
 - `react-native-track-player` 4.1.1, `@react-native-community/slider` 5.2.0 (already installed).
-- New dependency allowed: `@react-native-community/async-storage` (requires `pod install` in `ios/`).
+- New dependency allowed: `@react-native-async-storage/async-storage` (requires `pod install` in `ios/`).
 - Pure refactor — no user-visible behavior change. All P1 behavior (three-state loop `off→queue→track→off`, init error page, playback-error Alert, silent skip-boundary handling) must work identically after P2.
 - No automated tests exist; verification is Metro bundle build + manual iOS simulator check (eslint skipped — no config in project).
 - Spec: `docs/superpowers/specs/2026-07-03-p2-architecture-refactor-design.md`.
@@ -49,20 +49,20 @@ Each component/screen file contains its own `StyleSheet.create(...)` with only t
 
 ---
 
-### Task 1: Install @react-native-community/async-storage
+### Task 1: Install @react-native-async-storage/async-storage
 
 **Files:**
 - Modify: `package.json`, `package-lock.json`
 - Modify: `ios/Podfile.lock` (via `pod install`)
 
 **Interfaces:**
-- Produces: `@react-native-community/async-storage` installed and linked. Consumed by Task 2 (`src/data/storage.js`).
+- Produces: `@react-native-async-storage/async-storage` installed and linked. Consumed by Task 2 (`src/data/storage.js`).
 
 - [ ] **Step 1: Install the npm package**
 
 Run:
 ```bash
-npm install @react-native-community/async-storage
+npm install @react-native-async-storage/async-storage
 ```
 Expected: package added to `dependencies` in `package.json`; `package-lock.json` updated.
 
@@ -86,7 +86,7 @@ Expected: "Done writing bundle output" with no errors.
 
 ```bash
 git add package.json package-lock.json ios/Podfile.lock
-git commit -m "Install @react-native-community/async-storage for P2 data layer"
+git commit -m "Install @react-native-async-storage/async-storage for P2 data layer"
 ```
 
 ---
@@ -102,7 +102,7 @@ This task creates `playlist.js`, `constants.js`, `storage.js` under `src/data/`,
 - Modify: `App.js` — remove inline `playlist`, `SCREEN_WIDTH`/`VINYL_SIZE`/`ART_SIZE`, `REPEAT_MAP`; add imports from `src/data/`
 
 **Interfaces:**
-- Consumes: `RepeatMode` from `react-native-track-player` (for `REPEAT_MAP`); `@react-native-community/async-storage` (for `storage.js`); `Dimensions` from `react-native` (for `constants.js`).
+- Consumes: `RepeatMode` from `react-native-track-player` (for `REPEAT_MAP`); `@react-native-async-storage/async-storage` (for `storage.js`); `Dimensions` from `react-native` (for `constants.js`).
 - Produces: `playlist` (named), `SCREEN_WIDTH`/`VINYL_SIZE`/`ART_SIZE`/`COLORS`/`REPEAT_MAP` (named), `loadJSON`/`saveJSON`/`removeKey` (named). Consumed by App.js immediately and by components/screens in later tasks.
 
 - [ ] **Step 1: Create src/data/playlist.js**
@@ -199,7 +199,7 @@ export const REPEAT_MAP = {
 Create file `src/data/storage.js`:
 
 ```js
-import AsyncStorage from "@react-native-community/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export async function loadJSON(key, fallback = null) {
   try {
