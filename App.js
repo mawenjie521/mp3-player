@@ -15,100 +15,10 @@ import Slider from "@react-native-community/slider";
 import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
-
-function Vinyl({ artwork, spin }) {
-  const spinDeg = spin.interpolate({
-    inputRange: [0, 360],
-    outputRange: ["0deg", "360deg"],
-  });
-
-  return (
-    <View style={styles.vinylWrapper}>
-      <Animated.View style={[styles.vinyl, { transform: [{ rotate: spinDeg }] }]}>
-        <View style={[styles.groove, { width: VINYL_SIZE - 20, height: VINYL_SIZE - 20, borderRadius: (VINYL_SIZE - 20) / 2 }]} />
-        <View style={[styles.groove, { width: VINYL_SIZE - 60, height: VINYL_SIZE - 60, borderRadius: (VINYL_SIZE - 60) / 2 }]} />
-        <View style={[styles.groove, { width: VINYL_SIZE - 100, height: VINYL_SIZE - 100, borderRadius: (VINYL_SIZE - 100) / 2 }]} />
-        <View style={styles.artWrapper}>
-          <Image source={{ uri: artwork }} style={styles.art} />
-          <View style={styles.centerLabel} />
-        </View>
-      </Animated.View>
-    </View>
-  );
-}
-
-function Tonearm({ isPlaying }) {
-  const angle = useRef(new Animated.Value(isPlaying ? 20 : -30)).current;
-
-  useEffect(() => {
-    Animated.timing(angle, {
-      toValue: isPlaying ? 20 : -30,
-      duration: 400,
-      easing: Easing.inOut(Easing.ease),
-      useNativeDriver: true,
-    }).start();
-  }, [isPlaying, angle]);
-
-  const rot = angle.interpolate({
-    inputRange: [-30, 20],
-    outputRange: ["-30deg", "20deg"],
-  });
-
-  return (
-    <Animated.View style={[styles.tonearm, { transform: [{ rotate: rot }] }]}>
-      <View style={styles.tonearmBar} />
-      <View style={styles.tonearmHead} />
-    </Animated.View>
-  );
-}
-
-function Lyrics({ lines, currentIndex }) {
-  const visible = [];
-  for (let i = -1; i <= 1; i++) {
-    const idx = currentIndex + i;
-    if (idx >= 0 && idx < lines.length) {
-      visible.push({ idx, text: lines[idx] });
-    }
-  }
-
-  return (
-    <View style={styles.lyricsContainer}>
-      {visible.map(({ idx, text }) => {
-        const isCurrent = idx === currentIndex;
-        return (
-          <Text key={idx} style={[styles.lyricLine, isCurrent && styles.lyricCurrent]} numberOfLines={1}>
-            {text}
-          </Text>
-        );
-      })}
-    </View>
-  );
-}
-
-function Controls({ isPlaying, onPrev, onNext, onTogglePlay, repeatMode, onToggleRepeat }) {
-  const accent = (on) => (on ? "#C20C0C" : "#b3b3b3");
-  const repeatIcon = repeatMode === "track" ? "🔂" : "🔁";
-
-  return (
-    <View style={styles.controls}>
-      <TouchableOpacity onPress={onToggleRepeat} style={styles.sideButton}>
-        <Text style={[styles.sideIcon, { color: accent(repeatMode !== "off") }]}>{repeatIcon}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={onPrev} style={styles.controlButton}>
-        <Text style={styles.controlIcon}>⏮</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={onTogglePlay} style={styles.playButton}>
-        <Text style={styles.playIcon}>{isPlaying ? "⏸" : "▶"}</Text>
-      </TouchableOpacity>
-
-      <TouchableOpacity onPress={onNext} style={styles.controlButton}>
-        <Text style={styles.controlIcon}>⏭</Text>
-      </TouchableOpacity>
-    </View>
-  );
-}
+import Vinyl from "./src/components/Vinyl";
+import Tonearm from "./src/components/Tonearm";
+import Lyrics from "./src/components/Lyrics";
+import Controls from "./src/components/Controls";
 
 function PlayerScreen({
   currentTrack,
@@ -490,101 +400,6 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
   },
-  vinylWrapper: {
-    width: VINYL_SIZE,
-    height: VINYL_SIZE,
-    alignSelf: "center",
-    marginBottom: 24,
-  },
-  vinyl: {
-    width: VINYL_SIZE,
-    height: VINYL_SIZE,
-    borderRadius: VINYL_SIZE / 2,
-    backgroundColor: "#0a0a0a",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.6,
-    shadowRadius: 20,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
-  },
-  groove: {
-    position: "absolute",
-    borderWidth: 1,
-    borderColor: "#222",
-  },
-  artWrapper: {
-    width: ART_SIZE,
-    height: ART_SIZE,
-    borderRadius: ART_SIZE / 2,
-    borderWidth: 2,
-    borderColor: "#fff",
-    overflow: "hidden",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  art: {
-    width: "100%",
-    height: "100%",
-    borderRadius: ART_SIZE / 2,
-  },
-  centerLabel: {
-    position: "absolute",
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#C20C0C",
-  },
-  tonearm: {
-    position: "absolute",
-    top: -10,
-    right: -10,
-    width: 130,
-    height: 130,
-    zIndex: 10,
-  },
-  tonearmBar: {
-    position: "absolute",
-    top: 12,
-    right: 12,
-    width: 8,
-    height: 100,
-    borderRadius: 4,
-    backgroundColor: "#999",
-    transformOrigin: "top right",
-  },
-  tonearmHead: {
-    position: "absolute",
-    top: 6,
-    right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: "#666",
-    borderWidth: 2,
-    borderColor: "#888",
-  },
-  lyricsContainer: {
-    height: 90,
-    alignItems: "center",
-    justifyContent: "center",
-    marginHorizontal: 24,
-    marginBottom: 16,
-  },
-  lyricLine: {
-    fontSize: 14,
-    color: "#b3b3b3",
-    opacity: 0.4,
-    marginVertical: 4,
-    textAlign: "center",
-  },
-  lyricCurrent: {
-    fontSize: 17,
-    color: "#ffffff",
-    opacity: 1,
-    fontWeight: "600",
-  },
   slider: {
     width: "100%",
     height: 40,
@@ -599,42 +414,6 @@ const styles = StyleSheet.create({
     color: "#b3b3b3",
     fontSize: 11,
     fontVariant: ["tabular-nums"],
-  },
-  controls: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginBottom: 16,
-  },
-  sideButton: {
-    padding: 12,
-    width: 56,
-    alignItems: "center",
-  },
-  sideIcon: {
-    fontSize: 22,
-  },
-  controlButton: {
-    padding: 12,
-  },
-  controlIcon: {
-    fontSize: 30,
-    color: "#fff",
-  },
-  playButton: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    borderWidth: 2,
-    borderColor: "#fff",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  playIcon: {
-    fontSize: 28,
-    color: "#fff",
-    marginTop: -2,
   },
   listHeader: {
     paddingHorizontal: 24,
