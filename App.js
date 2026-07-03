@@ -13,6 +13,7 @@ import { playlist } from "./src/data/playlist";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import PlaylistScreen from "./src/screens/PlaylistScreen";
+import ErrorBoundary from "./src/error/ErrorBoundary";
 
 export default function App() {
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -148,49 +149,57 @@ export default function App() {
 
   if (initError) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.errorTitle}>加载失败</Text>
-        <Text style={styles.errorMessage}>{initError}</Text>
-        <TouchableOpacity onPress={retryInit} style={styles.retryButton}>
-          <Text style={styles.retryText}>重试</Text>
-        </TouchableOpacity>
-      </View>
+      <ErrorBoundary>
+        <View style={styles.container}>
+          <Text style={styles.errorTitle}>加载失败</Text>
+          <Text style={styles.errorMessage}>{initError}</Text>
+          <TouchableOpacity onPress={retryInit} style={styles.retryButton}>
+            <Text style={styles.retryText}>重试</Text>
+          </TouchableOpacity>
+        </View>
+      </ErrorBoundary>
     );
   }
 
   if (!isPlayerInitialized) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.loading}>加载中...</Text>
-      </View>
+      <ErrorBoundary>
+        <View style={styles.container}>
+          <Text style={styles.loading}>加载中...</Text>
+        </View>
+      </ErrorBoundary>
     );
   }
 
   if (view === "list") {
     return (
-      <PlaylistScreen
-        playlist={playlist}
-        currentTrack={currentTrack}
-        onSelect={onSelect}
-      />
+      <ErrorBoundary>
+        <PlaylistScreen
+          playlist={playlist}
+          currentTrack={currentTrack}
+          onSelect={onSelect}
+        />
+      </ErrorBoundary>
     );
   }
 
   return (
-    <PlayerScreen
-      currentTrack={currentTrack}
-      isPlaying={isPlaying}
-      position={position}
-      duration={duration}
-      repeatMode={repeatMode}
-      spin={spin}
-      onTogglePlay={togglePlayback}
-      onSkipNext={skipToNext}
-      onSkipPrev={skipToPrevious}
-      onSeek={seekTo}
-      onToggleRepeat={toggleRepeat}
-      onBack={onBack}
-    />
+    <ErrorBoundary>
+      <PlayerScreen
+        currentTrack={currentTrack}
+        isPlaying={isPlaying}
+        position={position}
+        duration={duration}
+        repeatMode={repeatMode}
+        spin={spin}
+        onTogglePlay={togglePlayback}
+        onSkipNext={skipToNext}
+        onSkipPrev={skipToPrevious}
+        onSeek={seekTo}
+        onToggleRepeat={toggleRepeat}
+        onBack={onBack}
+      />
+    </ErrorBoundary>
   );
 }
 
