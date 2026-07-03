@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
 import Slider from "@react-native-community/slider";
 import { COLORS } from "../data/constants";
@@ -21,12 +21,6 @@ function PlayerScreen({
   onToggleRepeat,
   onBack,
 }) {
-  const lyricIndex = useMemo(() => {
-    if (!currentTrack || !currentTrack.lyrics || !duration) return 0;
-    const idx = Math.floor((position / duration) * currentTrack.lyrics.length);
-    return Math.min(idx, currentTrack.lyrics.length - 1);
-  }, [position, duration, currentTrack]);
-
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
     const secs = Math.floor(seconds % 60);
@@ -58,7 +52,7 @@ function PlayerScreen({
         <Tonearm isPlaying={isPlaying} />
       </View>
 
-      <Lyrics lines={currentTrack.lyrics || []} currentIndex={lyricIndex} />
+      <Lyrics lrc={currentTrack.lrc} position={position} />
 
       <Slider
         style={styles.slider}

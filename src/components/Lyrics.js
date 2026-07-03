@@ -1,13 +1,25 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { COLORS } from "../data/constants";
+import { parseLRC, findCurrentIndex } from "../data/lrcParser";
 
-function Lyrics({ lines, currentIndex }) {
+function Lyrics({ lrc, position }) {
+  const parsed = useMemo(() => parseLRC(lrc), [lrc]);
+  const currentIndex = useMemo(() => findCurrentIndex(parsed, position), [parsed, position]);
+
+  if (parsed.length === 0) {
+    return (
+      <View style={styles.lyricsContainer}>
+        <Text style={styles.emptyText}>暂无歌词</Text>
+      </View>
+    );
+  }
+
   const visible = [];
   for (let i = -1; i <= 1; i++) {
     const idx = currentIndex + i;
-    if (idx >= 0 && idx < lines.length) {
-      visible.push({ idx, text: lines[idx] });
+    if (idx >= 0 && idx < parsed.length) {
+      visible.push({ idx, text: parsed[idx].text });
     }
   }
 
@@ -45,6 +57,10 @@ const styles = StyleSheet.create({
     color: COLORS.primaryText,
     opacity: 1,
     fontWeight: "600",
+  },
+  emptyText: {
+    color: COLORS.secondaryText,
+    fontSize: 14,
   },
 });
 
