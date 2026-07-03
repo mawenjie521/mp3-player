@@ -259,7 +259,7 @@ Key changes:
 - Added imports of `playlist`, `COLORS`, `REPEAT_MAP` from `src/data/`.
 - Removed the inline `playlist` array, `SCREEN_WIDTH`/`VINYL_SIZE`/`ART_SIZE` constants, and `REPEAT_MAP` object.
 
-Note: `COLORS` is imported now but not yet referenced in App.js — it will be used in later tasks when styles are updated. For now, the import is present to avoid a follow-up edit; if eslint were configured it might warn about an unused import, but eslint is not configured in this project.
+Note: `COLORS` is imported now but not yet referenced in App.js — it will be used in Task 4 Step 6 when App.js's remaining top-level styles are updated to reference `COLORS` instead of hardcoded hex values. Between Task 2 and Task 4 the import is unused; eslint is not configured in this project so no warning, and Metro bundle does not fail on unused imports.
 
 - [ ] **Step 5: Verify Metro bundle builds**
 
@@ -949,7 +949,63 @@ In `App.js`, remove these style entries from the `styles` StyleSheet:
 
 Leave in `App.js`: `container`, `glowTop`, `loading`, `errorTitle`, `errorMessage`, `retryButton`, `retryText` (used by App's init-error / loading branches).
 
-- [ ] **Step 6: Verify Metro bundle builds**
+- [ ] **Step 6: Update App.js remaining styles to use COLORS**
+
+In `App.js`, update the 7 remaining style entries to reference `COLORS` instead of hardcoded hex values (satisfies spec §2.2 "色板统一从 constants.js 引用...不在各文件硬编码"). Replace the entire `const styles = StyleSheet.create({ ... })` block with:
+
+```js
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  glowTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+    backgroundColor: COLORS.accent,
+    opacity: 0.05,
+  },
+  loading: {
+    color: COLORS.primaryText,
+    textAlign: "center",
+    marginTop: 100,
+  },
+  errorTitle: {
+    color: COLORS.primaryText,
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 120,
+  },
+  errorMessage: {
+    color: COLORS.secondaryText,
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    marginHorizontal: 32,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    alignSelf: "center",
+  },
+  retryText: {
+    color: COLORS.accent,
+    fontSize: 15,
+  },
+});
+```
+
+`COLORS` was imported in Task 2 Step 4; it is now used. Verify no other style entries remain in this StyleSheet (all component/screen styles were moved in Tasks 3-4).
+
+- [ ] **Step 7: Verify Metro bundle builds**
 
 Run:
 ```bash
@@ -957,7 +1013,7 @@ npx react-native bundle --platform ios --dev false --entry-file index.js --bundl
 ```
 Expected: "Done writing bundle output" with no errors.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/screens/ App.js
@@ -1193,7 +1249,7 @@ If no changes were needed, skip the commit — the refactor is complete.
 **1. Spec coverage:**
 - Spec §2 (directory structure) → Task 2 (data/), Task 3 (components/), Task 4 (screens/), Task 5 (error/).
 - Spec §2.1 (file responsibilities) → each task creates files with the specified exports.
-- Spec §2.2 (co-located styles, COLORS centralization) → Task 3 Step 1-4 (each component has own StyleSheet, references COLORS), Task 4 (same for screens).
+- Spec §2.2 (co-located styles, COLORS centralization) → Task 3 Step 1-4 (each component has own StyleSheet, references COLORS), Task 4 Step 1-2 (same for screens), Task 4 Step 6 (App.js remaining 7 styles updated to use COLORS).
 - Spec §3.1 (storage.js with loadJSON/saveJSON/removeKey) → Task 2 Step 3.
 - Spec §3.2 (constants.js with COLORS/REPEAT_MAP/sizes) → Task 2 Step 2.
 - Spec §3.3 (ErrorBoundary class component, wrap App) → Task 5.
