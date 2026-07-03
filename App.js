@@ -26,6 +26,7 @@ export default function App() {
   const [view, setView] = useState("list");
   const [favorites, setFavorites] = useState([]);
   const [recent, setRecent] = useState([]);
+  const [activeTab, setActiveTab] = useState("all");
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -198,6 +199,10 @@ export default function App() {
         playlist={playlist}
         currentTrack={currentTrack}
         onSelect={onSelect}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        favorites={favorites}
+        recent={recent}
       />
     );
   } else {
