@@ -195,7 +195,7 @@ function Lyrics({ lrc, position }) {
 
 **变化：**
 - props: `({ lines, currentIndex })` → `({ lrc, position })`
-- 组件内部用 `useMemo` 解析 LRC + 定位当前行（App.js 不再计算 lyricIndex）
+- 组件内部用 `useMemo` 解析 LRC + 定位当前行（PlayerScreen 不再计算 lyricIndex）
 - 无 LRC 数据时显示"暂无歌词"占位
 - 3 行窗口视觉与 P2 一致（前一行/当前行/下一行）
 
@@ -236,12 +236,14 @@ const toggleFavorite = (id) => {
 改造后：`‹` 返回 | 歌曲名 | `♥` 收藏 | `⤴` 分享
 
 ```jsx
-<TouchableOpacity onPress={() => onToggleFavorite(currentTrack.id)} style={styles.topBarButton}>
-  <Text style={[styles.topBarIcon, { color: isFavorite ? COLORS.accent : COLORS.secondaryText }]}>
+<TouchableOpacity onPress={() => onToggleFavorite(currentTrack.id)} style={styles.topBackButton}>
+  <Text style={[styles.topIcon, { color: isFavorite ? COLORS.accent : COLORS.secondaryText }]}>
     {isFavorite ? "♥" : "♡"}
   </Text>
 </TouchableOpacity>
 ```
+
+复用 P2 已有的 `topBackButton`（40×40 居中容器）和 `topIcon`（图标文字）样式，仅通过内联 `color` 覆盖区分收藏/未收藏状态——不新增样式。
 
 - 收藏：`♥` 红色（COLORS.accent）
 - 未收藏：`♡` 灰色（COLORS.secondaryText）
@@ -356,7 +358,7 @@ const filtered = useMemo(() => {
 - PlaylistScreen 传入 `activeTab` + `onTabChange` + `favorites` + `recent`
 
 移除：
-- `lyricIndex` 的 useMemo（比例计算）——Lyrics 组件内部接管
+- 无（App.js 不移除任何内容；`lyricIndex` 的 useMemo 在 PlayerScreen 中移除——见 §3.3）
 
 不变：
 - `initPlayer`、`togglePlayback`、`skipToNext`、`skipToPrevious`、`seekTo`、`toggleRepeat`、`onSelect`、`onBack`、`retryInit`
