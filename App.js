@@ -379,15 +379,23 @@ export default function App() {
   };
 
   const skipToNext = async () => {
-    await TrackPlayer.skipToNext();
-    const track = await TrackPlayer.getActiveTrack();
-    setCurrentTrack(track);
+    try {
+      await TrackPlayer.skipToNext();
+      const track = await TrackPlayer.getActiveTrack();
+      setCurrentTrack(track);
+    } catch (e) {
+      // Queue boundary (repeatMode=off at last track) — silently ignore.
+    }
   };
 
   const skipToPrevious = async () => {
-    await TrackPlayer.skipToPrevious();
-    const track = await TrackPlayer.getActiveTrack();
-    setCurrentTrack(track);
+    try {
+      await TrackPlayer.skipToPrevious();
+      const track = await TrackPlayer.getActiveTrack();
+      setCurrentTrack(track);
+    } catch (e) {
+      // Queue boundary (at first track) — silently ignore.
+    }
   };
 
   const seekTo = async (value) => {
