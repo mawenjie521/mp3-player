@@ -301,6 +301,7 @@ export default function App() {
   const playbackState = usePlaybackState();
   const { position, duration } = useProgress();
   const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
+  const [initError, setInitError] = useState(null);
   const [repeatMode, setRepeatMode] = useState("off");
   const [view, setView] = useState("list");
 
@@ -345,10 +346,19 @@ export default function App() {
   };
 
   const initPlayer = async () => {
-    await TrackPlayer.setupPlayer();
-    await TrackPlayer.add(playlist);
-    await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
-    setIsPlayerInitialized(true);
+    try {
+      await TrackPlayer.setupPlayer();
+      await TrackPlayer.add(playlist);
+      await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
+      setIsPlayerInitialized(true);
+    } catch (e) {
+      setInitError((e && e.message) || "播放器初始化失败");
+    }
+  };
+
+  const retryInit = () => {
+    setInitError(null);
+    initPlayer();
   };
 
   const toggleRepeat = () => {
@@ -395,6 +405,18 @@ export default function App() {
   const onBack = () => {
     setView("list");
   };
+
+  if (initError) {
+    return (
+      <View style={styles.container}>
+        <Text style={styles.errorTitle}>加载失败</Text>
+        <Text style={styles.errorMessage}>{initError}</Text>
+        <TouchableOpacity onPress={retryInit} style={styles.retryButton}>
+          <Text style={styles.retryText}>重试</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   if (!isPlayerInitialized) {
     return (
@@ -450,6 +472,33 @@ const styles = StyleSheet.create({
     color: "#fff",
     textAlign: "center",
     marginTop: 100,
+  },
+  errorTitle: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 120,
+  },
+  errorMessage: {
+    color: "#b3b3b3",
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    marginHorizontal: 32,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "#C20C0C",
+    alignSelf: "center",
+  },
+  retryText: {
+    color: "#C20C0C",
+    fontSize: 15,
   },
   topBar: {
     flexDirection: "row",
