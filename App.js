@@ -6,78 +6,15 @@ import {
   StyleSheet,
   SafeAreaView,
   Image,
-  Dimensions,
   Animated,
   Easing,
   FlatList,
   Alert,
 } from "react-native";
 import Slider from "@react-native-community/slider";
-import TrackPlayer, { usePlaybackState, State, useProgress, RepeatMode } from "react-native-track-player";
-
-const playlist = [
-  {
-    id: "1",
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-    title: "示例音乐 1",
-    artist: "SoundHelix",
-    artwork: "https://picsum.photos/seed/song1/600/600",
-    lyrics: [
-      "夜色温柔如水",
-      "音符在指尖流淌",
-      "回忆像风一样",
-      "吹过空荡的街",
-      "我们都在追寻",
-      "那一束微光",
-      "时间停在原地",
-      "听一首老歌",
-    ],
-  },
-  {
-    id: "2",
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3",
-    title: "示例音乐 2",
-    artist: "SoundHelix",
-    artwork: "https://picsum.photos/seed/song2/600/600",
-    lyrics: [
-      "月光洒在窗台",
-      "心事无处安放",
-      "远处灯火阑珊",
-      "谁在轻声哼唱",
-      "走过多少旅程",
-      "才学会遗忘",
-      "梦里有你的脸",
-      "醒来只剩空",
-    ],
-  },
-  {
-    id: "3",
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3",
-    title: "示例音乐 3",
-    artist: "SoundHelix",
-    artwork: "https://picsum.photos/seed/song3/600/600",
-    lyrics: [
-      "雨滴敲打屋檐",
-      "节奏像心跳声",
-      "城市在沉睡中",
-      "独自闪烁霓虹",
-      "每一段旋律里",
-      "藏着旧时光",
-      "让音乐带我们",
-      "回到那一年",
-    ],
-  },
-];
-
-const { width: SCREEN_WIDTH } = Dimensions.get("window");
-const VINYL_SIZE = Math.min(340, SCREEN_WIDTH - 48);
-const ART_SIZE = Math.min(220, VINYL_SIZE - 120);
-
-const REPEAT_MAP = {
-  off: RepeatMode.Off,
-  queue: RepeatMode.Queue,
-  track: RepeatMode.Track,
-};
+import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
+import { playlist } from "./src/data/playlist";
+import { COLORS, REPEAT_MAP } from "./src/data/constants";
 
 function Vinyl({ artwork, spin }) {
   const spinDeg = spin.interpolate({
