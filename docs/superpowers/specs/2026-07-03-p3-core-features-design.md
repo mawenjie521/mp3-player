@@ -93,7 +93,7 @@ export function parseLRC(lrc) {
     const text = line.replace(timeRe, "").trim();
     if (times.length === 0 || !text) continue;
     for (const m of times) {
-      const sec = parseInt(m[1]) * 60 + parseInt(m[2]) + parseInt(m[3]) / 1000;
+      const sec = parseInt(m[1]) * 60 + parseInt(m[2]) + parseInt(m[3]) / (m[3].length === 3 ? 1000 : 100);
       result.push({ time: sec, text });
     }
   }
