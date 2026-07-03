@@ -36,7 +36,7 @@
 
 - React Native 0.75.4, React 18.3.1（不改变版本）
 - `react-native-track-player` 4.1.1（不改变）
-- **新依赖**：`@react-native-community/async-storage`（P2 允许必要依赖，P1 的"无新依赖"约束不沿用）
+- **新依赖**：`@react-native-async-storage/async-storage`（P2 允许必要依赖，P1 的"无新依赖"约束不沿用）
 - 功能行为与 P1 完全一致——P2 是纯重构，验收以"P1 行为不回归"为准
 - 验证方式：Metro bundle 构建 + iOS 模拟器人工检查（项目无自动化测试）
 
@@ -95,7 +95,7 @@ service.js               # 播放服务，不变
 ### 3.1 数据层（storage.js）
 
 ```js
-import AsyncStorage from "@react-native-community/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export async function loadJSON(key, fallback = null) {
   try {
@@ -296,7 +296,7 @@ renderScreen() {
 
 每步一个 commit，每步后 Metro bundle 必须能构建：
 
-1. **安装依赖**：`npm install @react-native-community/async-storage`
+1. **安装依赖**：`npm install @react-native-async-storage/async-storage`
 2. **建 src/data/**：抽 `playlist.js`、`constants.js`、`storage.js`；App.js 改为从 src/ 引入
 3. **抽叶子组件**：Vinyl → Tonearm → Lyrics → Controls（每次一个文件）
 4. **抽屏幕**：PlayerScreen → PlaylistScreen

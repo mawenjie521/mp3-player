@@ -6,13 +6,13 @@
 
 **Architecture:** Incremental extraction. Each task moves code out of `App.js` into a focused module under `src/`, keeps styles co-located with their components, and verifies Metro bundle builds before committing. Pure refactor — P1 behavior (three-state loop, layered error handling, playback logic) is preserved exactly.
 
-**Tech Stack:** React Native 0.75.4, React 18.3.1, react-native-track-player 4.1.1, `@react-native-community/slider` 5.2.0, **new:** `@react-native-community/async-storage`.
+**Tech Stack:** React Native 0.75.4, React 18.3.1, react-native-track-player 4.1.1, `@react-native-community/slider` 5.2.0, **new:** `@react-native-async-storage/async-storage`.
 
 ## Global Constraints
 
 - React Native 0.75.4, React 18.3.1 (do not change versions).
 - `react-native-track-player` 4.1.1, `@react-native-community/slider` 5.2.0 (already installed).
-- New dependency allowed: `@react-native-community/async-storage` (requires `pod install` in `ios/`).
+- New dependency allowed: `@react-native-async-storage/async-storage` (requires `pod install` in `ios/`).
 - Pure refactor — no user-visible behavior change. All P1 behavior (three-state loop `off→queue→track→off`, init error page, playback-error Alert, silent skip-boundary handling) must work identically after P2.
 - No automated tests exist; verification is Metro bundle build + manual iOS simulator check (eslint skipped — no config in project).
 - Spec: `docs/superpowers/specs/2026-07-03-p2-architecture-refactor-design.md`.
@@ -49,20 +49,20 @@ Each component/screen file contains its own `StyleSheet.create(...)` with only t
 
 ---
 
-### Task 1: Install @react-native-community/async-storage
+### Task 1: Install @react-native-async-storage/async-storage
 
 **Files:**
 - Modify: `package.json`, `package-lock.json`
 - Modify: `ios/Podfile.lock` (via `pod install`)
 
 **Interfaces:**
-- Produces: `@react-native-community/async-storage` installed and linked. Consumed by Task 2 (`src/data/storage.js`).
+- Produces: `@react-native-async-storage/async-storage` installed and linked. Consumed by Task 2 (`src/data/storage.js`).
 
 - [ ] **Step 1: Install the npm package**
 
 Run:
 ```bash
-npm install @react-native-community/async-storage
+npm install @react-native-async-storage/async-storage
 ```
 Expected: package added to `dependencies` in `package.json`; `package-lock.json` updated.
 
@@ -86,7 +86,7 @@ Expected: "Done writing bundle output" with no errors.
 
 ```bash
 git add package.json package-lock.json ios/Podfile.lock
-git commit -m "Install @react-native-community/async-storage for P2 data layer"
+git commit -m "Install @react-native-async-storage/async-storage for P2 data layer"
 ```
 
 ---
@@ -102,7 +102,7 @@ This task creates `playlist.js`, `constants.js`, `storage.js` under `src/data/`,
 - Modify: `App.js` — remove inline `playlist`, `SCREEN_WIDTH`/`VINYL_SIZE`/`ART_SIZE`, `REPEAT_MAP`; add imports from `src/data/`
 
 **Interfaces:**
-- Consumes: `RepeatMode` from `react-native-track-player` (for `REPEAT_MAP`); `@react-native-community/async-storage` (for `storage.js`); `Dimensions` from `react-native` (for `constants.js`).
+- Consumes: `RepeatMode` from `react-native-track-player` (for `REPEAT_MAP`); `@react-native-async-storage/async-storage` (for `storage.js`); `Dimensions` from `react-native` (for `constants.js`).
 - Produces: `playlist` (named), `SCREEN_WIDTH`/`VINYL_SIZE`/`ART_SIZE`/`COLORS`/`REPEAT_MAP` (named), `loadJSON`/`saveJSON`/`removeKey` (named). Consumed by App.js immediately and by components/screens in later tasks.
 
 - [ ] **Step 1: Create src/data/playlist.js**
@@ -199,7 +199,7 @@ export const REPEAT_MAP = {
 Create file `src/data/storage.js`:
 
 ```js
-import AsyncStorage from "@react-native-community/async-storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export async function loadJSON(key, fallback = null) {
   try {
@@ -259,7 +259,7 @@ Key changes:
 - Added imports of `playlist`, `COLORS`, `REPEAT_MAP` from `src/data/`.
 - Removed the inline `playlist` array, `SCREEN_WIDTH`/`VINYL_SIZE`/`ART_SIZE` constants, and `REPEAT_MAP` object.
 
-Note: `COLORS` is imported now but not yet referenced in App.js — it will be used in later tasks when styles are updated. For now, the import is present to avoid a follow-up edit; if eslint were configured it might warn about an unused import, but eslint is not configured in this project.
+Note: `COLORS` is imported now but not yet referenced in App.js — it will be used in Task 4 Step 6 when App.js's remaining top-level styles are updated to reference `COLORS` instead of hardcoded hex values. Between Task 2 and Task 4 the import is unused; eslint is not configured in this project so no warning, and Metro bundle does not fail on unused imports.
 
 - [ ] **Step 5: Verify Metro bundle builds**
 
@@ -949,7 +949,63 @@ In `App.js`, remove these style entries from the `styles` StyleSheet:
 
 Leave in `App.js`: `container`, `glowTop`, `loading`, `errorTitle`, `errorMessage`, `retryButton`, `retryText` (used by App's init-error / loading branches).
 
-- [ ] **Step 6: Verify Metro bundle builds**
+- [ ] **Step 6: Update App.js remaining styles to use COLORS**
+
+In `App.js`, update the 7 remaining style entries to reference `COLORS` instead of hardcoded hex values (satisfies spec §2.2 "色板统一从 constants.js 引用...不在各文件硬编码"). Replace the entire `const styles = StyleSheet.create({ ... })` block with:
+
+```js
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
+  glowTop: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 280,
+    backgroundColor: COLORS.accent,
+    opacity: 0.05,
+  },
+  loading: {
+    color: COLORS.primaryText,
+    textAlign: "center",
+    marginTop: 100,
+  },
+  errorTitle: {
+    color: COLORS.primaryText,
+    fontSize: 18,
+    fontWeight: "600",
+    textAlign: "center",
+    marginTop: 120,
+  },
+  errorMessage: {
+    color: COLORS.secondaryText,
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
+    marginHorizontal: 32,
+  },
+  retryButton: {
+    marginTop: 24,
+    paddingHorizontal: 32,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    alignSelf: "center",
+  },
+  retryText: {
+    color: COLORS.accent,
+    fontSize: 15,
+  },
+});
+```
+
+`COLORS` was imported in Task 2 Step 4; it is now used. Verify no other style entries remain in this StyleSheet (all component/screen styles were moved in Tasks 3-4).
+
+- [ ] **Step 7: Verify Metro bundle builds**
 
 Run:
 ```bash
@@ -957,7 +1013,7 @@ npx react-native bundle --platform ios --dev false --entry-file index.js --bundl
 ```
 Expected: "Done writing bundle output" with no errors.
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add src/screens/ App.js
@@ -1193,7 +1249,7 @@ If no changes were needed, skip the commit — the refactor is complete.
 **1. Spec coverage:**
 - Spec §2 (directory structure) → Task 2 (data/), Task 3 (components/), Task 4 (screens/), Task 5 (error/).
 - Spec §2.1 (file responsibilities) → each task creates files with the specified exports.
-- Spec §2.2 (co-located styles, COLORS centralization) → Task 3 Step 1-4 (each component has own StyleSheet, references COLORS), Task 4 (same for screens).
+- Spec §2.2 (co-located styles, COLORS centralization) → Task 3 Step 1-4 (each component has own StyleSheet, references COLORS), Task 4 Step 1-2 (same for screens), Task 4 Step 6 (App.js remaining 7 styles updated to use COLORS).
 - Spec §3.1 (storage.js with loadJSON/saveJSON/removeKey) → Task 2 Step 3.
 - Spec §3.2 (constants.js with COLORS/REPEAT_MAP/sizes) → Task 2 Step 2.
 - Spec §3.3 (ErrorBoundary class component, wrap App) → Task 5.
