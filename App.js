@@ -323,6 +323,20 @@ export default function App() {
     }
   }, [isPlaying]);
 
+  useEffect(() => {
+    const sub = TrackPlayer.addEventListener("playback-error", () => {
+      Alert.alert(
+        "播放失败",
+        "当前歌曲无法播放，是否跳到下一首？",
+        [
+          { text: "下一首", onPress: () => skipToNext() },
+          { text: "取消", style: "cancel" },
+        ]
+      );
+    });
+    return () => sub.remove();
+  }, []);
+
   const startSpin = () => {
     if (spinAnim.current) return;
     const anim = Animated.loop(
