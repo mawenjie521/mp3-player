@@ -25,6 +25,7 @@ export default function App() {
   const [repeatMode, setRepeatMode] = useState("off");
   const [view, setView] = useState("list");
   const [favorites, setFavorites] = useState([]);
+  const [recent, setRecent] = useState([]);
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -61,6 +62,19 @@ export default function App() {
   useEffect(() => {
     loadJSON("@mp3player:favorites", []).then(setFavorites);
   }, []);
+
+  useEffect(() => {
+    loadJSON("@mp3player:recent", []).then(setRecent);
+  }, []);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+    setRecent((prev) => {
+      const next = [currentTrack.id, ...prev.filter((id) => id !== currentTrack.id)].slice(0, 20);
+      saveJSON("@mp3player:recent", next);
+      return next;
+    });
+  }, [currentTrack?.id]);
 
   const startSpin = () => {
     if (spinAnim.current) return;
