@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
 import { loadJSON, saveJSON } from "./src/data/storage";
+import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import PlaylistScreen from "./src/screens/PlaylistScreen";
@@ -27,6 +28,8 @@ export default function App() {
   const [favorites, setFavorites] = useState([]);
   const [recent, setRecent] = useState([]);
   const [activeTab, setActiveTab] = useState("all");
+  const [importedTracks, setImportedTracks] = useState([]);
+  const allTracks = useMemo(() => [...playlist, ...importedTracks], [importedTracks]);
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -104,6 +107,9 @@ export default function App() {
       await TrackPlayer.setupPlayer();
       await TrackPlayer.add(playlist);
       await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
+      const imported = await loadImported();
+      setImportedTracks(imported);
+      if (imported.length > 0) await TrackPlayer.add(imported);
       setIsPlayerInitialized(true);
     } catch (e) {
       setInitError((e && e.message) || "播放器初始化失败");
@@ -176,6 +182,21 @@ export default function App() {
     });
   };
 
+  const handleImport = async () => {
+    try {
+      const track = await pickAndCopyTrack();
+      setImportedTracks((prev) => {
+        const next = [...prev, track];
+        persistImported(next);
+        return next;
+      });
+      await TrackPlayer.add([track]);
+    } catch (e) {
+      const msg = (e && e.message) || "";
+      if (msg.includes("cancel") || msg.includes("Cancel")) return;
+      Alert.alert("导入失败", "无法导入此文件");
+    }
+  };
   let content;
   if (initError) {
     content = (
@@ -196,13 +217,14 @@ export default function App() {
   } else if (view === "list") {
     content = (
       <PlaylistScreen
-        playlist={playlist}
+        playlist={allTracks}
         currentTrack={currentTrack}
         onSelect={onSelect}
         activeTab={activeTab}
         onTabChange={setActiveTab}
         favorites={favorites}
         recent={recent}
+        onImport={handleImport}
       />
     );
   } else {
