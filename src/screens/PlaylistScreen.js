@@ -6,18 +6,21 @@ const TABS = [
   { key: "all", label: "全部" },
   { key: "favorites", label: "收藏" },
   { key: "recent", label: "最近播放" },
+  { key: "imported", label: "我的音乐" },
 ];
 
-function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChange, favorites, recent }) {
+function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChange, favorites, recent, onImport }) {
   const filtered = useMemo(() => {
     if (activeTab === "favorites") return playlist.filter((t) => favorites.includes(t.id));
     if (activeTab === "recent") return recent.map((id) => playlist.find((t) => t.id === id)).filter(Boolean);
+    if (activeTab === "imported") return playlist.filter((t) => t.isImported);
     return playlist;
   }, [activeTab, playlist, favorites, recent]);
 
   const subtitle = useMemo(() => {
     if (activeTab === "favorites") return `已收藏 ${filtered.length} 首`;
     if (activeTab === "recent") return `最近播放过 ${filtered.length} 首`;
+    if (activeTab === "imported") return `已导入 ${filtered.length} 首`;
     return `共 ${playlist.length} 首`;
   }, [activeTab, filtered.length, playlist.length]);
 
@@ -67,10 +70,21 @@ function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChan
           );
         })}
       </View>
+      {activeTab === "imported" && (
+        <View style={styles.importBar}>
+          <TouchableOpacity onPress={onImport} style={styles.importButton}>
+            <Text style={styles.importButtonText}>+ 导入音乐</Text>
+          </TouchableOpacity>
+        </View>
+      )}
       {filtered.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>
-            {activeTab === "favorites" ? "还没有收藏的歌曲" : "还没有播放记录"}
+            {activeTab === "favorites"
+              ? "还没有收藏的歌曲"
+              : activeTab === "recent"
+              ? "还没有播放记录"
+              : "还没有导入音乐"}
           </Text>
         </View>
       ) : (
@@ -187,6 +201,23 @@ const styles = StyleSheet.create({
   emptyText: {
     color: COLORS.secondaryText,
     fontSize: 14,
+  },
+  importBar: {
+    paddingHorizontal: 24,
+    paddingBottom: 8,
+  },
+  importButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+    alignSelf: "flex-start",
+  },
+  importButtonText: {
+    color: COLORS.accent,
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
 
