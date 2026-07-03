@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
+import { loadJSON, saveJSON } from "./src/data/storage";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import PlaylistScreen from "./src/screens/PlaylistScreen";
@@ -23,6 +24,7 @@ export default function App() {
   const [initError, setInitError] = useState(null);
   const [repeatMode, setRepeatMode] = useState("off");
   const [view, setView] = useState("list");
+  const [favorites, setFavorites] = useState([]);
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -54,6 +56,10 @@ export default function App() {
       );
     });
     return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
+    loadJSON("@mp3player:favorites", []).then(setFavorites);
   }, []);
 
   const startSpin = () => {
@@ -147,6 +153,14 @@ export default function App() {
     setView("list");
   };
 
+  const toggleFavorite = (id) => {
+    setFavorites((prev) => {
+      const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+      saveJSON("@mp3player:favorites", next);
+      return next;
+    });
+  };
+
   let content;
   if (initError) {
     content = (
@@ -187,6 +201,8 @@ export default function App() {
         onSeek={seekTo}
         onToggleRepeat={toggleRepeat}
         onBack={onBack}
+        isFavorite={favorites.includes(currentTrack?.id)}
+        onToggleFavorite={toggleFavorite}
       />
     );
   }

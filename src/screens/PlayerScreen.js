@@ -20,6 +20,8 @@ function PlayerScreen({
   onSeek,
   onToggleRepeat,
   onBack,
+  isFavorite,
+  onToggleFavorite,
 }) {
   const formatTime = (seconds) => {
     const mins = Math.floor(seconds / 60);
@@ -44,6 +46,11 @@ function PlayerScreen({
           <Text style={styles.topIcon}>‹</Text>
         </TouchableOpacity>
         <Text style={styles.topTitle} numberOfLines={1}>{currentTrack.title}</Text>
+        <TouchableOpacity onPress={() => onToggleFavorite(currentTrack.id)} style={styles.topBackButton}>
+          <Text style={[styles.topIcon, { color: isFavorite ? COLORS.accent : COLORS.secondaryText }]}>
+            {isFavorite ? "♥" : "♡"}
+          </Text>
+        </TouchableOpacity>
         <Text style={styles.topIcon}>⤴</Text>
       </View>
 
