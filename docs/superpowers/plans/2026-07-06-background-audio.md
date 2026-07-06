@@ -19,7 +19,7 @@ Copied verbatim from the spec:
 - `updateOptions()` call placement: inside `initPlayer()`, immediately after `await TrackPlayer.setupPlayer();` and before `await TrackPlayer.add(playlist);`.
 - Verification: Metro bundle build (`npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/test-bundle.js`) + manual iOS simulator/device check (no automated tests, no eslint in project).
 - Branch: `feature/background-audio` (cut from main).
-- Commit style: lowercase verb-first (matches existing history, e.g., "Add background audio: UIBackgroundModes + updateOptions").
+- Commit style: Capitalized verb-first — matches existing repo history (verified via `git log --oneline`; all recent commits use this style, e.g., "Add background audio design spec", "Replace playlist with 50-song set").
 
 ---
 
@@ -89,7 +89,7 @@ git add ios/MP3Player/Info.plist
 git commit -m "Add UIBackgroundModes audio entitlement for background playback"
 ```
 
-Expected: one file changed, ~3 insertions.
+Expected: one file changed, ~3 insertions. Commit message uses Capitalized verb-first (matches repo convention).
 
 ---
 
@@ -184,7 +184,7 @@ git add App.js
 git commit -m "Declare playback capabilities to enable lock screen controls"
 ```
 
-Expected: one file changed, ~14 insertions (1 modified import line + ~13 lines for the `updateOptions` call).
+Expected: one file changed, ~14 insertions (1 modified import line + ~13 lines for the `updateOptions` call). Commit message uses Capitalized verb-first (matches repo convention).
 
 ---
 

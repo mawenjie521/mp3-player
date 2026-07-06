@@ -8,7 +8,7 @@ import {
   Easing,
   Alert,
 } from "react-native";
-import TrackPlayer, { usePlaybackState, State, useProgress } from "react-native-track-player";
+import TrackPlayer, { usePlaybackState, State, useProgress, Capability } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
@@ -106,6 +106,20 @@ export default function App() {
   const initPlayer = async () => {
     try {
       await TrackPlayer.setupPlayer();
+      await TrackPlayer.updateOptions({
+        capabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.Stop,
+          Capability.SkipToNext,
+          Capability.SkipToPrevious,
+        ],
+        compactCapabilities: [
+          Capability.Play,
+          Capability.Pause,
+          Capability.SkipToNext,
+        ],
+      });
       await TrackPlayer.add(playlist);
       await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
       const imported = await loadImported();
