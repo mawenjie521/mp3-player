@@ -1,7 +1,7 @@
 export const playlist = [
   {
     id: "1",
-    url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
+    url: "https://sound2.yywz123.com/english96ad/lesson/song50/27840cedffaacebdb.mp3",
     title: "示例音乐 1",
     artist: "SoundHelix",
     artwork: "https://picsum.photos/seed/song1/600/600",
