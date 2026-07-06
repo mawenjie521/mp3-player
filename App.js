@@ -50,7 +50,8 @@ export default function App() {
   }, [isPlaying]);
 
   useEffect(() => {
-    const sub = TrackPlayer.addEventListener("playback-error", () => {
+    const sub = TrackPlayer.addEventListener("playback-error", (error) => {
+      console.error(error)
       Alert.alert(
         "播放失败",
         "当前歌曲无法播放，是否跳到下一首？",
