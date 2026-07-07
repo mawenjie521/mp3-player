@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, FlatList } from "react-native";
 import { COLORS } from "../data/constants";
 
@@ -16,6 +16,16 @@ function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChan
     if (activeTab === "imported") return playlist.filter((t) => t.isImported);
     return playlist;
   }, [activeTab, playlist, favorites, recent]);
+
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+    const index = filtered.findIndex((t) => t.id === currentTrack.id);
+    if (index >= 0) {
+      listRef.current?.scrollToIndex({ index, viewPosition: 0.5, animated: false });
+    }
+  }, [currentTrack?.id, activeTab, filtered]);
 
   const subtitle = useMemo(() => {
     if (activeTab === "favorites") return `已收藏 ${filtered.length} 首`;
@@ -89,10 +99,17 @@ function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChan
         </View>
       ) : (
         <FlatList
+          ref={listRef}
           data={filtered}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
           ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
+          onScrollToIndexFailed={() => {
+            setTimeout(() => {
+              const idx = filtered.findIndex((t) => currentTrack && t.id === currentTrack.id);
+              if (idx >= 0) listRef.current?.scrollToIndex({ index: idx, viewPosition: 0.5 });
+            }, 100);
+          }}
         />
       )}
     </SafeAreaView>
