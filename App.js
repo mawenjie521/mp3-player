@@ -65,6 +65,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const sub = TrackPlayer.addEventListener("playback-track-changed", async () => {
+      const track = await TrackPlayer.getActiveTrack();
+      setCurrentTrack(track);
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
     loadJSON("@mp3player:favorites", []).then(setFavorites);
   }, []);
 
@@ -189,6 +197,8 @@ export default function App() {
     setView("list");
   };
 
+  const onShowPlayer = () => setView("player");
+
   const toggleFavorite = (id) => {
     setFavorites((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
@@ -240,6 +250,7 @@ export default function App() {
         favorites={favorites}
         recent={recent}
         onImport={handleImport}
+        onShowPlayer={onShowPlayer}
       />
     );
   } else {
