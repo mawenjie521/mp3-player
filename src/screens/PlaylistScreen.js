@@ -9,7 +9,7 @@ const TABS = [
   { key: "imported", label: "我的音乐" },
 ];
 
-function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChange, favorites, recent, onImport }) {
+function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChange, favorites, recent, onImport, onShowPlayer }) {
   const filtered = useMemo(() => {
     if (activeTab === "favorites") return playlist.filter((t) => favorites.includes(t.id));
     if (activeTab === "recent") return recent.map((id) => playlist.find((t) => t.id === id)).filter(Boolean);
@@ -86,6 +86,21 @@ function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChan
             <Text style={styles.importButtonText}>+ 导入音乐</Text>
           </TouchableOpacity>
         </View>
+      )}
+      {currentTrack && (
+        <TouchableOpacity
+          style={styles.nowPlayingCard}
+          onPress={onShowPlayer}
+          activeOpacity={0.7}
+        >
+          <Image source={{ uri: currentTrack.artwork }} style={styles.nowPlayingThumb} />
+          <View style={styles.nowPlayingInfo}>
+            <Text style={styles.nowPlayingLabel}>正在播放</Text>
+            <Text style={styles.nowPlayingTitle} numberOfLines={1}>{currentTrack.title}</Text>
+            <Text style={styles.nowPlayingArtist} numberOfLines={1}>{currentTrack.artist}</Text>
+          </View>
+          <Text style={styles.nowPlayingArrow}>▶</Text>
+        </TouchableOpacity>
       )}
       {filtered.length === 0 ? (
         <View style={styles.emptyState}>
@@ -235,6 +250,46 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 14,
     fontWeight: "600",
+  },
+  nowPlayingCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: 24,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 12,
+    backgroundColor: "#C20C0C0D",
+  },
+  nowPlayingThumb: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: "#333",
+  },
+  nowPlayingInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  nowPlayingLabel: {
+    color: COLORS.secondaryText,
+    fontSize: 11,
+    marginBottom: 2,
+  },
+  nowPlayingTitle: {
+    color: COLORS.primaryText,
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  nowPlayingArtist: {
+    color: COLORS.secondaryText,
+    fontSize: 12,
+    marginTop: 1,
+  },
+  nowPlayingArrow: {
+    color: COLORS.accent,
+    fontSize: 14,
+    marginLeft: 8,
   },
 });
 

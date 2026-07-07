@@ -197,6 +197,8 @@ export default function App() {
     setView("list");
   };
 
+  const onShowPlayer = () => setView("player");
+
   const toggleFavorite = (id) => {
     setFavorites((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
@@ -248,6 +250,7 @@ export default function App() {
         favorites={favorites}
         recent={recent}
         onImport={handleImport}
+        onShowPlayer={onShowPlayer}
       />
     );
   } else {
