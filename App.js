@@ -8,7 +8,15 @@ import {
   Easing,
   Alert,
 } from "react-native";
-import TrackPlayer, { usePlaybackState, State, useProgress, Capability } from "react-native-track-player";
+import TrackPlayer, {
+  usePlaybackState,
+  State,
+  useProgress,
+  Capability,
+  IOSCategory,
+  IOSCategoryMode,
+  IOSCategoryOptions,
+} from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
@@ -113,7 +121,15 @@ export default function App() {
 
   const initPlayer = async () => {
     try {
-      await TrackPlayer.setupPlayer();
+      await TrackPlayer.setupPlayer({
+        iosCategory: IOSCategory.Playback,
+        iosCategoryMode: IOSCategoryMode.Default,
+        iosCategoryOptions: [
+          IOSCategoryOptions.AllowBluetoothA2DP,
+          IOSCategoryOptions.AllowAirPlay,
+          IOSCategoryOptions.DefaultToSpeaker,
+        ],
+      });
       await TrackPlayer.updateOptions({
         capabilities: [
           Capability.Play,

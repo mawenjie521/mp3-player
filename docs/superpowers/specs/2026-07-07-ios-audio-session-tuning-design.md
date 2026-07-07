@@ -123,7 +123,7 @@ Per the project's verification method (no automated tests; Metro bundle + manual
 
 ## Risks
 
-1. **`iosCategoryOptions` must be an array.** RNTP's TypeScript type requires `IOSCategoryOptions[]`. Writing a single value would be caught by TS; this project doesn't run TS checks, but RNTP asserts at runtime. Spec code uses the array form correctly.
+1. **`iosCategoryOptions` must be an array.** RNTP's TypeScript type requires `IOSCategoryOptions[]`. This project is plain JS (no TS type-checking at build time), so a single-value mistake would not be caught until runtime — the native layer may reject it or silently misbehave. Spec code uses the array form correctly.
 2. **`AllowBluetooth` and `AllowBluetoothA2DP` are mutually exclusive** per Apple docs. Spec only enables A2DP, no conflict.
 3. **`playback-error` flow unchanged.** Route failures (e.g. Bluetooth disconnect) still trigger the existing Alert at App.js:53-65 offering to skip to next track.
 4. **Regression surface is minimal.** Only the `setupPlayer()` call form changes; call site, call order, and other options (`updateOptions`, `add`, `setRepeatMode`) are unchanged. Background audio, lock-screen controls, error handling paths all unaffected.
