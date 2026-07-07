@@ -13,7 +13,7 @@
 - **No automated tests** — this project has no test suite. Verification is Metro bundle build + manual iOS simulator check. Do NOT run `npm test` (it exits 1 with "No tests found" — pre-existing, not a regression).
 - **Verification gate per task:** `npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/test-bundle.js` must succeed (catches import / syntax / missing-module errors).
 - **eslint is not configured** — do not add lint steps.
-- **Commit style:** Capitalized verb-first subject (e.g., "Add playback-track-changed listener"), no Co-Authored-By trailer (matches recent project history).
+- **Commit style:** Capitalized verb-first subject (e.g., "Add playback-track-changed listener"), with `Co-Authored-By: Claude Opus 4.7 <noreply@anthropic.com>` trailer (matches recent project history).
 - **COLORS:** `COLORS.accent = "#C20C0C"`, `COLORS.primaryText = "#ffffff"`, `COLORS.secondaryText = "#b3b3b3"`, `COLORS.background = "#1a1a1a"` — defined in `src/data/constants.js`.
 - **App.js line budget:** P2/P3 set a 300-line soft budget; this plan pushes App.js to ~326 lines. Already exceeded by the background-audio work — acceptable.
 - **No new files, no new dependencies.** Only `App.js` and `src/screens/PlaylistScreen.js` are touched.
