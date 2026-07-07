@@ -65,6 +65,14 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    const sub = TrackPlayer.addEventListener("playback-track-changed", async () => {
+      const track = await TrackPlayer.getActiveTrack();
+      setCurrentTrack(track);
+    });
+    return () => sub.remove();
+  }, []);
+
+  useEffect(() => {
     loadJSON("@mp3player:favorites", []).then(setFavorites);
   }, []);
 
