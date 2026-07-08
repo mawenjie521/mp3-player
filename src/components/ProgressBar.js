@@ -27,28 +27,26 @@ function ProgressBar({ position, duration, onSeek }) {
     return value;
   };
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: (evt) => {
-        setDragValue(position);
-        setIsDragging(true);
-        updateValueFromTouchX(evt.nativeEvent.locationX);
-      },
-      onPanResponderMove: (evt) => {
-        updateValueFromTouchX(evt.nativeEvent.locationX);
-      },
-      onPanResponderRelease: (evt) => {
-        const v = updateValueFromTouchX(evt.nativeEvent.locationX);
-        onSeek(v);
-        setIsDragging(false);
-      },
-      onPanResponderTerminate: () => {
-        setIsDragging(false);
-      },
-    })
-  ).current;
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: (evt) => {
+      setDragValue(position);
+      setIsDragging(true);
+      updateValueFromTouchX(evt.nativeEvent.locationX);
+    },
+    onPanResponderMove: (evt) => {
+      updateValueFromTouchX(evt.nativeEvent.locationX);
+    },
+    onPanResponderRelease: (evt) => {
+      const v = updateValueFromTouchX(evt.nativeEvent.locationX);
+      onSeek(v);
+      setIsDragging(false);
+    },
+    onPanResponderTerminate: () => {
+      setIsDragging(false);
+    },
+  });
 
   return (
     <View style={styles.wrapper}>
