@@ -48,7 +48,7 @@ Derived values:
 
 Behavior:
 
-- `onSlidingStart` → `setIsDragging(true)`
+- `onSlidingStart` → `setDragValue(position)` then `setIsDragging(true)` (seeds `dragValue` with the current position so a `useProgress` re-render between drag start and the first `onValueChange` cannot snap the thumb back to a stale value)
 - `onValueChange` → `setDragValue(v)` (keeps the thumb and left time label in sync with the finger)
 - `onSlidingComplete` → `onSeek(v)` then `setIsDragging(false)`
 - Slider `value={displayValue}` — during drag, `displayValue` tracks `dragValue`, so `useProgress` updates no longer push the thumb around
@@ -85,7 +85,10 @@ function ProgressBar({ position, duration, onSeek }) {
         minimumValue={0}
         maximumValue={safeDuration}
         value={displayValue}
-        onSlidingStart={() => setIsDragging(true)}
+        onSlidingStart={() => {
+          setDragValue(position);
+          setIsDragging(true);
+        }}
         onValueChange={(v) => setDragValue(v)}
         onSlidingComplete={(v) => {
           onSeek(v);
