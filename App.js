@@ -201,7 +201,9 @@ export default function App() {
     await TrackPlayer.seekTo(value);
   };
 
-  const onSelect = async (index) => {
+  const onSelect = async (item, scope) => {
+    await TrackPlayer.setQueue(scope);
+    const index = scope.findIndex((t) => t.id === item.id);
     await TrackPlayer.skip(index);
     await TrackPlayer.play();
     const track = await TrackPlayer.getActiveTrack();
