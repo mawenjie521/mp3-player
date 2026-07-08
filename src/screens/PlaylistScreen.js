@@ -39,7 +39,7 @@ function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChan
     return (
       <TouchableOpacity
         style={styles.listRow}
-        onPress={() => onSelect(playlist.indexOf(item))}
+        onPress={() => onSelect(item, filtered)}
         activeOpacity={0.6}
       >
         <Image source={{ uri: item.artwork }} style={styles.listThumb} />
