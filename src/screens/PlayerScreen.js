@@ -1,11 +1,11 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView } from "react-native";
-import Slider from "@react-native-community/slider";
 import { COLORS } from "../data/constants";
 import Vinyl from "../components/Vinyl";
 import Tonearm from "../components/Tonearm";
 import Lyrics from "../components/Lyrics";
 import Controls from "../components/Controls";
+import ProgressBar from "../components/ProgressBar";
 
 function PlayerScreen({
   currentTrack,
@@ -23,12 +23,6 @@ function PlayerScreen({
   isFavorite,
   onToggleFavorite,
 }) {
-  const formatTime = (seconds) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
-  };
-
   if (!currentTrack) {
     return (
       <View style={styles.container}>
@@ -61,20 +55,7 @@ function PlayerScreen({
 
       <Lyrics lrc={currentTrack.lrc} position={position} />
 
-      <Slider
-        style={styles.slider}
-        minimumValue={0}
-        maximumValue={duration}
-        value={position}
-        onSlidingComplete={onSeek}
-        minimumTrackTintColor={COLORS.accent}
-        maximumTrackTintColor="#ffffff20"
-        thumbTintColor={COLORS.primaryText}
-      />
-      <View style={styles.timeContainer}>
-        <Text style={styles.time}>{formatTime(position)}</Text>
-        <Text style={styles.time}>{formatTime(duration)}</Text>
-      </View>
+      <ProgressBar position={position} duration={duration} onSeek={onSeek} />
 
       <Controls
         isPlaying={isPlaying}
@@ -137,21 +118,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: 8,
     marginBottom: 8,
-  },
-  slider: {
-    width: "100%",
-    height: 40,
-  },
-  timeContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    paddingHorizontal: 24,
-    marginBottom: 16,
-  },
-  time: {
-    color: COLORS.secondaryText,
-    fontSize: 11,
-    fontVariant: ["tabular-nums"],
   },
 });
 
