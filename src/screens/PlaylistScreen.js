@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Image, FlatList } from "react-native";
 import { COLORS } from "../data/constants";
+import { filterTracks } from "../data/filterTracks";
 
 const TABS = [
   { key: "all", label: "全部" },
@@ -10,12 +11,10 @@ const TABS = [
 ];
 
 function PlaylistScreen({ playlist, currentTrack, onSelect, activeTab, onTabChange, favorites, recent, onImport, onShowPlayer }) {
-  const filtered = useMemo(() => {
-    if (activeTab === "favorites") return playlist.filter((t) => favorites.includes(t.id));
-    if (activeTab === "recent") return recent.map((id) => playlist.find((t) => t.id === id)).filter(Boolean);
-    if (activeTab === "imported") return playlist.filter((t) => t.isImported);
-    return playlist;
-  }, [activeTab, playlist, favorites, recent]);
+  const filtered = useMemo(
+    () => filterTracks(activeTab, playlist, favorites, recent),
+    [activeTab, playlist, favorites, recent]
+  );
 
   const listRef = useRef(null);
 
