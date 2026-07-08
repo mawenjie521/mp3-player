@@ -134,13 +134,13 @@ const styles = StyleSheet.create({
   touchContainer: {
     width: "100%",
     height: 40,
-    justifyContent: "center",
     position: "relative",
   },
   trackBackground: {
     position: "absolute",
     left: 0,
     right: 0,
+    top: 17, // (40 - 6) / 2 — vertically center 6px track in 40px touch area
     height: 6,
     borderRadius: 3,
     backgroundColor: "#ffffff40",
@@ -148,12 +148,14 @@ const styles = StyleSheet.create({
   trackFill: {
     position: "absolute",
     left: 0,
+    top: 17,
     height: 6,
     borderRadius: 3,
     backgroundColor: COLORS.accent,
   },
   thumb: {
     position: "absolute",
+    top: 12, // (40 - 16) / 2 — vertically center 16px thumb in 40px touch area
     width: 16,
     height: 16,
     borderRadius: 8,
@@ -179,8 +181,9 @@ const styles = StyleSheet.create({
 - **Unplayed track `#ffffff40`** (white 25% opacity) — doubles the prior `#ffffff20` (12%) opacity; clearly visible on `#1a1a1a` without competing with the played red.
 - **Played track `COLORS.accent`** (`#C20C0C`) — unchanged. The thickness increase + the now-visible unplayed track beside it resolve "played not prominent" without breaking brand-color consistency (same red used in top-bar glow, favorite icon, now-playing card).
 - **Thumb 16×16px** — ~30% larger than the Slider's default thumb; clearly tappable without dominating.
-- **Touch container 40px tall, track vertically centered** — the 6px track is too thin to tap accurately; the 40px invisible touch area gives fingers room. `justifyContent: "center"` centers the track; `position: "absolute"` on track/thumb layers them on top.
+- **Touch container 40px tall, track/thumb absolutely positioned with explicit `top`** — the 6px track is too thin to tap accurately; the 40px invisible touch area gives fingers room. `top: 17` = `(40 - 6) / 2` vertically centers the 6px track; `top: 12` = `(40 - 16) / 2` vertically centers the 16px thumb. (`justifyContent: "center"` does **not** affect `position: "absolute"` children in React Native — explicit `top` values are required.)
 - **Thumb `marginLeft: -8`** — half of 16px, offsets so the thumb's *center* aligns with the progress position (not its left edge).
+- **Wrapper `paddingHorizontal: 24`** — insets both the track and the time labels by 24px so they align edge-to-edge. (Prior layout had the slider spanning full width while labels were inset 24px — slightly misaligned. The new wrapper-level padding fixes this.)
 
 ### 2. No other file changes
 
