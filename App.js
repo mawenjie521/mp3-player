@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import {
+  AppState,
   View,
   Text,
   TouchableOpacity,
@@ -18,6 +19,7 @@ import TrackPlayer, {
   IOSCategoryOptions,
 } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
+import { filterTracks } from "./src/data/filterTracks";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
@@ -80,13 +82,10 @@ export default function App() {
     return () => sub.remove();
   }, []);
 
+  const playbackRef = useRef(null);
   useEffect(() => {
-    loadJSON("@mp3player:favorites", []).then(setFavorites);
-  }, []);
-
-  useEffect(() => {
-    loadJSON("@mp3player:recent", []).then(setRecent);
-  }, []);
+    playbackRef.current = { currentTrack, activeTab, repeatMode };
+  });
 
   useEffect(() => {
     if (!currentTrack) return;
@@ -96,6 +95,46 @@ export default function App() {
       return next;
     });
   }, [currentTrack?.id]);
+
+  useEffect(() => {
+    if (!currentTrack) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const { position } = await TrackPlayer.getProgress();
+        if (cancelled) return;
+        saveJSON("@mp3player:playback", {
+          trackId: currentTrack.id,
+          position: position || 0,
+          activeTab,
+          repeatMode,
+        });
+      } catch {
+        // 静默失败 - 存储不可用不应阻断 UI
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [currentTrack?.id, activeTab, repeatMode]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener("change", async (state) => {
+      if (state !== "inactive" && state !== "background") return;
+      const snap = playbackRef.current;
+      if (!snap || !snap.currentTrack) return;
+      try {
+        const { position } = await TrackPlayer.getProgress();
+        saveJSON("@mp3player:playback", {
+          trackId: snap.currentTrack.id,
+          position: position || 0,
+          activeTab: snap.activeTab,
+          repeatMode: snap.repeatMode,
+        });
+      } catch {
+        // 静默失败
+      }
+    });
+    return () => sub.remove();
+  }, []);
 
   const startSpin = () => {
     if (spinAnim.current) return;
@@ -145,10 +184,44 @@ export default function App() {
         ],
       });
       await TrackPlayer.add(playlist);
-      await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
-      const imported = await loadImported();
+
+      const [imported, savedFavs, savedRecent, savedPlayback] = await Promise.all([
+        loadImported(),
+        loadJSON("@mp3player:favorites", []),
+        loadJSON("@mp3player:recent", []),
+        loadJSON("@mp3player:playback", null),
+      ]);
+
       setImportedTracks(imported);
+      setFavorites(savedFavs);
+      setRecent(savedRecent);
       if (imported.length > 0) await TrackPlayer.add(imported);
+
+      if (savedPlayback && savedPlayback.trackId) {
+        const { trackId, position, activeTab: savedTab, repeatMode: savedRepeat } = savedPlayback;
+        const safeRepeat = REPEAT_MAP[savedRepeat] ? savedRepeat : "off";
+        const safeTab = ["all", "favorites", "recent", "imported"].includes(savedTab) ? savedTab : "all";
+
+        setRepeatMode(safeRepeat);
+        await TrackPlayer.setRepeatMode(REPEAT_MAP[safeRepeat]);
+        setActiveTab(safeTab);
+
+        const allTracks = [...playlist, ...imported];
+        const filtered = filterTracks(safeTab, allTracks, savedFavs, savedRecent);
+        await TrackPlayer.setQueue(filtered);
+        const idx = filtered.findIndex((t) => t.id === trackId);
+        if (idx >= 0) {
+          await TrackPlayer.skip(idx);
+          if (typeof position === "number" && position > 0) {
+            await TrackPlayer.seekTo(position);
+          }
+          const track = await TrackPlayer.getActiveTrack();
+          setCurrentTrack(track);
+        }
+      } else {
+        await TrackPlayer.setRepeatMode(REPEAT_MAP.off);
+      }
+
       setIsPlayerInitialized(true);
     } catch (e) {
       setInitError((e && e.message) || "播放器初始化失败");
