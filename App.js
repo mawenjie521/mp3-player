@@ -50,6 +50,7 @@ export default function App() {
   const [importedTracks, setImportedTracks] = useState([]);
   const [ocrNovels, setOcrNovels] = useState([]);
   const ocrNovelChapters = useMemo(() => expandOCRChapters(ocrNovels), [ocrNovels]);
+  const novelsTracks = useMemo(() => [...novels, ...ocrNovelChapters], [ocrNovelChapters]);
   const allTracks = useMemo(
     () => [...playlist, ...novels, ...importedTracks, ...ocrNovelChapters],
     [importedTracks, ocrNovelChapters]
@@ -436,6 +437,7 @@ export default function App() {
           )}
           {tab === "novels" && (
             <NovelsScreen
+              tracks={novelsTracks}
               currentTrack={currentTrack}
               onSelect={onSelect}
               onShowPlayer={onShowPlayer}

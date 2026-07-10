@@ -23,9 +23,16 @@ function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, emptyText = "
       >
         <Image source={{ uri: item.artwork }} style={styles.listThumb} />
         <View style={styles.listInfo}>
-          <Text style={[styles.listTitle, isActive && styles.listTitleActive]} numberOfLines={1}>
-            {item.title}
-          </Text>
+          <View style={styles.listTitleRow}>
+            <Text style={[styles.listTitle, isActive && styles.listTitleActive]} numberOfLines={1}>
+              {item.title}
+            </Text>
+            {item.isOCR && (
+              <View style={styles.ocrBadge}>
+                <Text style={styles.ocrBadgeText}>OCR</Text>
+              </View>
+            )}
+          </View>
           <Text style={styles.listArtist} numberOfLines={1}>
             {item.artist}
           </Text>
@@ -98,6 +105,22 @@ const styles = StyleSheet.create({
   },
   listTitleActive: {
     color: COLORS.accent,
+  },
+  listTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  ocrBadge: {
+    marginLeft: 6,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    backgroundColor: COLORS.accent,
+  },
+  ocrBadgeText: {
+    color: COLORS.primaryText,
+    fontSize: 9,
+    fontWeight: "700",
   },
   listArtist: {
     color: COLORS.secondaryText,
