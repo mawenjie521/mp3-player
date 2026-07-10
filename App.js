@@ -8,6 +8,7 @@ import {
   Animated,
   Easing,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import TrackPlayer, {
   usePlaybackState,
@@ -19,12 +20,16 @@ import TrackPlayer, {
   IOSCategoryOptions,
 } from "react-native-track-player";
 import { playlist } from "./src/data/playlist";
+import { novels } from "./src/data/novels";
 import { filterTracks } from "./src/data/filterTracks";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
-import PlaylistScreen from "./src/screens/PlaylistScreen";
+import SongsScreen from "./src/screens/SongsScreen";
+import NovelsScreen from "./src/screens/NovelsScreen";
+import MineScreen from "./src/screens/MineScreen";
+import BottomNav from "./src/components/BottomNav";
 import ErrorBoundary from "./src/error/ErrorBoundary";
 
 export default function App() {
@@ -34,12 +39,14 @@ export default function App() {
   const [isPlayerInitialized, setIsPlayerInitialized] = useState(false);
   const [initError, setInitError] = useState(null);
   const [repeatMode, setRepeatMode] = useState("off");
-  const [view, setView] = useState("list");
+  const [view, setView] = useState("tabs");
   const [favorites, setFavorites] = useState([]);
   const [recent, setRecent] = useState([]);
-  const [activeTab, setActiveTab] = useState("all");
+  const [tab, setTab] = useState("songs");
+  const [scope, setScope] = useState("songs");
+  const [mineSubTab, setMineSubTab] = useState("favorites");
   const [importedTracks, setImportedTracks] = useState([]);
-  const allTracks = useMemo(() => [...playlist, ...importedTracks], [importedTracks]);
+  const allTracks = useMemo(() => [...playlist, ...novels, ...importedTracks], [importedTracks]);
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -84,7 +91,7 @@ export default function App() {
 
   const playbackRef = useRef(null);
   useEffect(() => {
-    playbackRef.current = { currentTrack, activeTab, repeatMode };
+    playbackRef.current = { currentTrack, tab, scope, repeatMode };
   });
 
   useEffect(() => {
@@ -106,7 +113,8 @@ export default function App() {
         saveJSON("@mp3player:playback", {
           trackId: currentTrack.id,
           position: position || 0,
-          activeTab,
+          tab,
+          scope,
           repeatMode,
         });
       } catch {
@@ -114,7 +122,7 @@ export default function App() {
       }
     })();
     return () => { cancelled = true; };
-  }, [currentTrack?.id, activeTab, repeatMode]);
+  }, [currentTrack?.id, scope, repeatMode]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", async (state) => {
@@ -126,7 +134,8 @@ export default function App() {
         saveJSON("@mp3player:playback", {
           trackId: snap.currentTrack.id,
           position: position || 0,
-          activeTab: snap.activeTab,
+          tab: snap.tab,
+          scope: snap.scope,
           repeatMode: snap.repeatMode,
         });
       } catch {
@@ -198,16 +207,36 @@ export default function App() {
       if (imported.length > 0) await TrackPlayer.add(imported);
 
       if (savedPlayback && savedPlayback.trackId) {
-        const { trackId, position, activeTab: savedTab, repeatMode: savedRepeat } = savedPlayback;
+        const { trackId, position, repeatMode: savedRepeat } = savedPlayback;
         const safeRepeat = REPEAT_MAP[savedRepeat] ? savedRepeat : "off";
-        const safeTab = ["all", "favorites", "recent", "imported"].includes(savedTab) ? savedTab : "all";
+
+        let savedTab;
+        let savedScope;
+        if (typeof savedPlayback.activeTab === "string") {
+          const map = {
+            all: { tab: "songs", scope: "songs" },
+            favorites: { tab: "mine", scope: "favorites" },
+            recent: { tab: "mine", scope: "recent" },
+            imported: { tab: "mine", scope: "imported" },
+          };
+          const mapped = map[savedPlayback.activeTab] || { tab: "songs", scope: "songs" };
+          savedTab = mapped.tab;
+          savedScope = mapped.scope;
+        } else {
+          savedTab = ["songs", "novels", "mine"].includes(savedPlayback.tab) ? savedPlayback.tab : "songs";
+          savedScope = ["songs", "novels", "favorites", "recent", "imported"].includes(savedPlayback.scope) ? savedPlayback.scope : "songs";
+        }
 
         setRepeatMode(safeRepeat);
         await TrackPlayer.setRepeatMode(REPEAT_MAP[safeRepeat]);
-        setActiveTab(safeTab);
+        setTab(savedTab);
+        setScope(savedScope);
+        if (["favorites", "recent", "imported"].includes(savedScope)) {
+          setMineSubTab(savedScope);
+        }
 
-        const allTracks = [...playlist, ...imported];
-        const filtered = filterTracks(safeTab, allTracks, savedFavs, savedRecent);
+        const allTracksForRestore = [...playlist, ...novels, ...imported];
+        const filtered = filterTracks(savedScope, allTracksForRestore, savedFavs, savedRecent);
         await TrackPlayer.setQueue(filtered);
         const idx = filtered.findIndex((t) => t.id === trackId);
         if (idx >= 0) {
@@ -274,18 +303,19 @@ export default function App() {
     await TrackPlayer.seekTo(value);
   };
 
-  const onSelect = async (item, scope) => {
-    await TrackPlayer.setQueue(scope);
-    const index = scope.findIndex((t) => t.id === item.id);
+  const onSelect = async (item, tracks, scopeKey) => {
+    await TrackPlayer.setQueue(tracks);
+    const index = tracks.findIndex((t) => t.id === item.id);
     await TrackPlayer.skip(index);
     await TrackPlayer.play();
     const track = await TrackPlayer.getActiveTrack();
     setCurrentTrack(track);
+    setScope(scopeKey);
     setView("player");
   };
 
   const onBack = () => {
-    setView("list");
+    setView("tabs");
   };
 
   const onShowPlayer = () => setView("player");
@@ -330,21 +360,7 @@ export default function App() {
         <Text style={styles.loading}>加载中...</Text>
       </View>
     );
-  } else if (view === "list") {
-    content = (
-      <PlaylistScreen
-        playlist={allTracks}
-        currentTrack={currentTrack}
-        onSelect={onSelect}
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        favorites={favorites}
-        recent={recent}
-        onImport={handleImport}
-        onShowPlayer={onShowPlayer}
-      />
-    );
-  } else {
+  } else if (view === "player") {
     content = (
       <PlayerScreen
         currentTrack={currentTrack}
@@ -362,6 +378,42 @@ export default function App() {
         isFavorite={favorites.includes(currentTrack?.id)}
         onToggleFavorite={toggleFavorite}
       />
+    );
+  } else {
+    content = (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.glowTop} />
+        <View style={{ flex: 1 }}>
+          {tab === "songs" && (
+            <SongsScreen
+              currentTrack={currentTrack}
+              onSelect={onSelect}
+              onShowPlayer={onShowPlayer}
+            />
+          )}
+          {tab === "novels" && (
+            <NovelsScreen
+              currentTrack={currentTrack}
+              onSelect={onSelect}
+              onShowPlayer={onShowPlayer}
+            />
+          )}
+          {tab === "mine" && (
+            <MineScreen
+              allTracks={allTracks}
+              currentTrack={currentTrack}
+              onSelect={onSelect}
+              onShowPlayer={onShowPlayer}
+              favorites={favorites}
+              recent={recent}
+              onImport={handleImport}
+              mineSubTab={mineSubTab}
+              onSubTabChange={setMineSubTab}
+            />
+          )}
+        </View>
+        <BottomNav activeTab={tab} onChange={setTab} />
+      </SafeAreaView>
     );
   }
 

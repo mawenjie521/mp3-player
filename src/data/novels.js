@@ -1,0 +1,32 @@
+export const novels = [
+  {
+    id: "n1",
+    url: "https://sound2.yywz123.com/english96ad/lesson/song50/27840cedffaacebdb.mp3",
+    title: "示例有声书 一",
+    artist: "演播者",
+    artwork: "https://picsum.photos/seed/novel1/600/600",
+    lrc: "",
+    category: "有声书",
+    isNovel: true,
+  },
+  {
+    id: "n2",
+    url: "https://sound2.yywz123.com/english96ad/lesson/song50/27839efadbdacfecb.mp3",
+    title: "示例有声书 二",
+    artist: "演播者",
+    artwork: "https://picsum.photos/seed/novel2/600/600",
+    lrc: "",
+    category: "有声书",
+    isNovel: true,
+  },
+  {
+    id: "n3",
+    url: "https://sound2.yywz123.com/english96ad/lesson/song50/27838dbedbacafecf.mp3",
+    title: "示例有声书 三",
+    artist: "演播者",
+    artwork: "https://picsum.photos/seed/novel3/600/600",
+    lrc: "",
+    category: "有声书",
+    isNovel: true,
+  },
+];
