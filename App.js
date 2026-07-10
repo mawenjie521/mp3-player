@@ -24,11 +24,13 @@ import { novels } from "./src/data/novels";
 import { filterTracks } from "./src/data/filterTracks";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
+import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, expandOCRChapters, checkOCRFileExistence } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
 import NovelsScreen from "./src/screens/NovelsScreen";
 import MineScreen from "./src/screens/MineScreen";
+import OcrImportScreen from "./src/screens/OcrImportScreen";
 import BottomNav from "./src/components/BottomNav";
 import ErrorBoundary from "./src/error/ErrorBoundary";
 
@@ -46,7 +48,12 @@ export default function App() {
   const [scope, setScope] = useState("songs");
   const [mineSubTab, setMineSubTab] = useState("favorites");
   const [importedTracks, setImportedTracks] = useState([]);
-  const allTracks = useMemo(() => [...playlist, ...novels, ...importedTracks], [importedTracks]);
+  const [ocrNovels, setOcrNovels] = useState([]);
+  const ocrNovelChapters = useMemo(() => expandOCRChapters(ocrNovels), [ocrNovels]);
+  const allTracks = useMemo(
+    () => [...playlist, ...novels, ...importedTracks, ...ocrNovelChapters],
+    [importedTracks, ocrNovelChapters]
+  );
 
   const spin = useRef(new Animated.Value(0)).current;
   const spinAnim = useRef(null);
@@ -194,17 +201,23 @@ export default function App() {
       });
       await TrackPlayer.add(playlist);
 
-      const [imported, savedFavs, savedRecent, savedPlayback] = await Promise.all([
+      const [imported, savedFavs, savedRecent, savedPlayback, savedOcrNovels] = await Promise.all([
         loadImported(),
         loadJSON("@mp3player:favorites", []),
         loadJSON("@mp3player:recent", []),
         loadJSON("@mp3player:playback", null),
+        loadOCRNovels(),
       ]);
 
       setImportedTracks(imported);
       setFavorites(savedFavs);
       setRecent(savedRecent);
       if (imported.length > 0) await TrackPlayer.add(imported);
+
+      const ocrNovelsChecked = await checkOCRFileExistence(savedOcrNovels);
+      setOcrNovels(ocrNovelsChecked);
+      const ocrChapters = expandOCRChapters(ocrNovelsChecked);
+      if (ocrChapters.length > 0) await TrackPlayer.add(ocrChapters);
 
       if (savedPlayback && savedPlayback.trackId) {
         const { trackId, position, repeatMode: savedRepeat } = savedPlayback;
@@ -235,7 +248,7 @@ export default function App() {
           setMineSubTab(savedScope);
         }
 
-        const allTracksForRestore = [...playlist, ...novels, ...imported];
+        const allTracksForRestore = [...playlist, ...novels, ...imported, ...ocrChapters];
         const filtered = filterTracks(savedScope, allTracksForRestore, savedFavs, savedRecent);
         await TrackPlayer.setQueue(filtered);
         const idx = filtered.findIndex((t) => t.id === trackId);
@@ -343,6 +356,29 @@ export default function App() {
       Alert.alert("导入失败", "无法导入此文件");
     }
   };
+
+  const onStartImport = () => {
+    setView("ocr-import");
+  };
+
+  const onImportComplete = async (book) => {
+    const next = await saveOCRNovel(book);
+    setOcrNovels(next);
+    const newChapters = expandOCRChapters([book]);
+    if (newChapters.length > 0) await TrackPlayer.add(newChapters);
+    setView("tabs");
+    setTab("novels");
+  };
+
+  const onDeleteOCRNovel = async (bookId) => {
+    const currentId = currentTrack?.id || "";
+    if (currentId.startsWith(`${bookId}/`)) {
+      await TrackPlayer.reset();
+      setCurrentTrack(null);
+    }
+    const next = await deleteOCRNovel(bookId);
+    setOcrNovels(next);
+  };
   let content;
   if (initError) {
     content = (
@@ -379,6 +415,13 @@ export default function App() {
         onToggleFavorite={toggleFavorite}
       />
     );
+  } else if (view === "ocr-import") {
+    content = (
+      <OcrImportScreen
+        onComplete={onImportComplete}
+        onCancel={() => setView("tabs")}
+      />
+    );
   } else {
     content = (
       <SafeAreaView style={styles.container}>
@@ -396,6 +439,7 @@ export default function App() {
               currentTrack={currentTrack}
               onSelect={onSelect}
               onShowPlayer={onShowPlayer}
+              onStartImport={onStartImport}
             />
           )}
           {tab === "mine" && (
@@ -409,6 +453,8 @@ export default function App() {
               onImport={handleImport}
               mineSubTab={mineSubTab}
               onSubTabChange={setMineSubTab}
+              ocrNovels={ocrNovels}
+              onDeleteOCRNovel={onDeleteOCRNovel}
             />
           )}
         </View>
