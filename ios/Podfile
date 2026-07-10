@@ -39,11 +39,36 @@ target 'MP3Player' do
     end
     # SwiftAudioEx (react-native-track-player dependency) does not compile in
     # the Swift 6 language mode that Xcode 16.3 defaults to; pin to Swift 5.
+    # Also exclude x86_64 from simulator builds: ML Kit prebuilt frameworks
+    # only ship arm64 for simulator, so builds under a Rosetta shell fail
+    # at link time without this.
     installer.pods_project.targets.each do |target|
-      next unless target.name == 'SwiftAudioEx'
       target.build_configurations.each do |config|
-        config.build_settings['SWIFT_VERSION'] = '5.0'
+        if target.name == 'SwiftAudioEx'
+          config.build_settings['SWIFT_VERSION'] = '5.0'
+        end
+        config.build_settings['EXCLUDED_ARCHS[sdk=iphonesimulator*]'] = 'x86_64'
       end
+    end
+
+    # use_react_native! writes EXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64
+    # into the app target's Pods xcconfig (legacy Intel-Mac default).
+    # That setting overrides the target's own EXCLUDED_ARCHS in the pbxproj
+    # and forces x86_64-only simulator builds, which fail to link against
+    # ML Kit's arm64-only prebuilt frameworks. Flip it to x86_64 so
+    # simulator builds are arm64-only.
+    app_xcconfig_dir = File.join(
+      installer.sandbox.root, 'Target Support Files', 'Pods-MP3Player'
+    )
+    %w[debug release].each do |config|
+      path = File.join(app_xcconfig_dir, "Pods-MP3Player.#{config}.xcconfig")
+      next unless File.exist?(path)
+      src = File.read(path)
+      patched = src.sub(
+        'EXCLUDED_ARCHS[sdk=iphonesimulator*] = arm64',
+        'EXCLUDED_ARCHS[sdk=iphonesimulator*] = x86_64'
+      )
+      File.write(path, patched) if patched != src
     end
   end
 end
