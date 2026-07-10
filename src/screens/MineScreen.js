@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList, Alert } from "react-native";
 import { COLORS } from "../data/constants";
 import { filterTracks } from "../data/filterTracks";
 import TrackList from "../components/TrackList";
@@ -8,10 +8,22 @@ const MINE_TABS = [
   { key: "favorites", label: "收藏" },
   { key: "recent", label: "最近播放" },
   { key: "imported", label: "导入音乐" },
+  { key: "ocr", label: "OCR 小说" },
 ];
 
-function MineScreen({ allTracks, currentTrack, onSelect, onShowPlayer, favorites, recent, onImport, mineSubTab, onSubTabChange }) {
-
+function MineScreen({
+  allTracks,
+  currentTrack,
+  onSelect,
+  onShowPlayer,
+  favorites,
+  recent,
+  onImport,
+  mineSubTab,
+  onSubTabChange,
+  ocrNovels,
+  onDeleteOCRNovel,
+}) {
   const filtered = useMemo(
     () => filterTracks(mineSubTab, allTracks, favorites, recent),
     [mineSubTab, allTracks, favorites, recent]
@@ -20,8 +32,29 @@ function MineScreen({ allTracks, currentTrack, onSelect, onShowPlayer, favorites
   const emptyText = useMemo(() => {
     if (mineSubTab === "favorites") return "还没有收藏的歌曲";
     if (mineSubTab === "recent") return "还没有播放记录";
-    return "还没有导入音乐";
+    if (mineSubTab === "imported") return "还没有导入音乐";
+    return "还没有 OCR 小说";
   }, [mineSubTab]);
+
+  const confirmDelete = (book) => {
+    Alert.alert("删除确认", `确定删除《${book.title}》？`, [
+      { text: "取消", style: "cancel" },
+      { text: "删除", style: "destructive", onPress: () => onDeleteOCRNovel(book.id) },
+    ]);
+  };
+
+  const renderOcrBook = ({ item }) => (
+    <View style={styles.bookRow}>
+      <Image source={{ uri: item.coverImage }} style={styles.bookCover} />
+      <View style={styles.bookInfo}>
+        <Text style={styles.bookTitle} numberOfLines={1}>{item.title}</Text>
+        <Text style={styles.bookMeta}>{item.chapters.length} 章</Text>
+      </View>
+      <TouchableOpacity onPress={() => confirmDelete(item)} style={styles.deleteBtn}>
+        <Text style={styles.deleteBtnText}>删除</Text>
+      </TouchableOpacity>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
@@ -52,13 +85,28 @@ function MineScreen({ allTracks, currentTrack, onSelect, onShowPlayer, favorites
           </TouchableOpacity>
         </View>
       )}
-      <TrackList
-        tracks={filtered}
-        currentTrack={currentTrack}
-        onSelect={(item) => onSelect(item, filtered, mineSubTab)}
-        onShowPlayer={onShowPlayer}
-        emptyText={emptyText}
-      />
+      {mineSubTab === "ocr" ? (
+        ocrNovels.length === 0 ? (
+          <View style={styles.emptyState}>
+            <Text style={styles.emptyText}>{emptyText}</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={ocrNovels}
+            keyExtractor={(item) => item.id}
+            renderItem={renderOcrBook}
+            ItemSeparatorComponent={() => <View style={styles.listSeparator} />}
+          />
+        )
+      ) : (
+        <TrackList
+          tracks={filtered}
+          currentTrack={currentTrack}
+          onSelect={(item) => onSelect(item, filtered, mineSubTab)}
+          onShowPlayer={onShowPlayer}
+          emptyText={emptyText}
+        />
+      )}
     </View>
   );
 }
@@ -119,6 +167,57 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 14,
     fontWeight: "600",
+  },
+  bookRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  bookCover: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: "#333",
+  },
+  bookInfo: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  bookTitle: {
+    color: COLORS.primaryText,
+    fontSize: 16,
+  },
+  bookMeta: {
+    color: COLORS.secondaryText,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  deleteBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  deleteBtnText: {
+    color: COLORS.accent,
+    fontSize: 13,
+  },
+  listSeparator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#ffffff10",
+    marginLeft: 84,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  emptyText: {
+    color: COLORS.secondaryText,
+    fontSize: 14,
   },
 });
 
