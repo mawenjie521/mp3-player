@@ -63,14 +63,14 @@ The now-playing card shows on every tab so the user can return to the player fro
 
 - Header: title "歌曲" + subtitle "共 N 首"
 - Body: `<TrackList tracks={playlist} ... />`
-- No filter tabs, no import button. Calls `onSelect(item, playlist)` with scope `"songs"` (passed through to App's `onSelect`).
+- No filter tabs, no import button. Calls `onSelect(item, playlist, "songs")`.
 
 ### New: `src/screens/NovelsScreen.js`
 
 - Header: title "小说" + subtitle "共 N 本"
 - Body: `<TrackList tracks={novels} ... />`
 - Structurally near-identical to `SongsScreen`. Separate file so future audiobook-specific features (chapters, sleep timer) have a home.
-- Calls `onSelect(item, novels)` with scope `"novels"`.
+- Calls `onSelect(item, novels, "novels")`.
 
 ### New: `src/screens/MineScreen.js`
 
@@ -82,7 +82,7 @@ Reuses the filter-tab pattern from the current `PlaylistScreen`, but with only t
 
 Local state `mineSubTab: "favorites" | "recent" | "imported"` controls which sub-tab is shown. Initialized on restore from the persisted `scope` if `tab === "mine"` (e.g. scope `"favorites"` -> mineSubTab `"favorites"`); otherwise defaults to `"favorites"`.
 
-Calls `onSelect(item, filtered)` where `filtered` is the sub-tab's filtered list and the scope is the sub-tab key.
+Calls `onSelect(item, filtered, mineSubTab)` where `filtered` is the sub-tab's filtered list and `mineSubTab` is the scope key (`"favorites"`/`"recent"`/`"imported"`).
 
 ### `src/screens/PlayerScreen.js` - unchanged
 
@@ -173,13 +173,31 @@ export function filterTracks(scope, allTracks, favorites, recent) {
 
 ### `onSelect` change
 
-Existing `onSelect(item, scope)` second arg already carries the scope concept. Each tab screen passes its scope:
+The existing `onSelect(item, scope)` has a misleadingly-named second param - `scope` is actually the filtered track array used to set the queue, not a scope key string. The new signature makes both concerns explicit:
 
-- `SongsScreen` -> `onSelect(item, "songs")` (well, `playlist` - but the scope is `"songs"`)
-- `NovelsScreen` -> `onSelect(item, "novels")`
-- `MineScreen` -> `onSelect(item, mineSubTab)` where `mineSubTab` is `"favorites"`/`"recent"`/`"imported"`
+```js
+const onSelect = async (item, tracks, scopeKey) => {
+  await TrackPlayer.setQueue(tracks);
+  const index = tracks.findIndex((t) => t.id === item.id);
+  await TrackPlayer.skip(index);
+  await TrackPlayer.play();
+  const track = await TrackPlayer.getActiveTrack();
+  setCurrentTrack(track);
+  setScope(scopeKey);           // new: persist queue source
+  setView("player");
+};
+```
 
-Inside `App.js`, `onSelect` now also stores `scope` in state and includes it in the persisted playback object (replacing `activeTab`).
+- `tracks` - the track array to set as the queue (what the screen already has filtered)
+- `scopeKey` - the string for persistence: `"songs" | "novels" | "favorites" | "recent" | "imported"`
+
+Each tab screen calls it with its own scope key:
+
+- `SongsScreen` -> `onSelect(item, playlist, "songs")`
+- `NovelsScreen` -> `onSelect(item, novels, "novels")`
+- `MineScreen` -> `onSelect(item, filtered, mineSubTab)` where `mineSubTab` is `"favorites"`/`"recent"`/`"imported"`
+
+`scopeKey` is stored in App state and written to the persisted playback object (replacing `activeTab`).
 
 ### Persistence migration
 
@@ -200,6 +218,8 @@ The queue rebuild in restore also changes: previously `filterTracks(safeTab, all
 ### Save logic
 
 The existing `useEffect` keyed on `currentTrack?.id` / `activeTab` / `repeatMode` saves the playback state. It now keys on `currentTrack?.id` / `scope` / `repeatMode` and writes `tab` + `scope` instead of `activeTab`. The `AppState` background-save listener uses a `playbackRef` that captures `{ currentTrack, tab, scope, repeatMode }`.
+
+**`tab` persistence:** `tab` is UI state that can change without a playback event (user switches bottom-nav tabs without playing). Rather than adding a dedicated save trigger for `tab` (excessive AsyncStorage writes on every nav tap), `tab` is saved opportunistically: the existing save triggers (track change, scope change, repeat change, app background) capture the current `tab` at save time. The `AppState` background listener covers the common exit path - when the app backgrounds, the current `tab` is saved. If the app is killed without backgrounding (rare), the restored `tab` reverts to the last save point. This is an acceptable tradeoff: `tab` is a UX nicety, not required for playback resume.
 
 ## Constants
 
