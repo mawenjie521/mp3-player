@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { COLORS } from "../data/constants";
 import { filterTracks } from "../data/filterTracks";
@@ -10,8 +10,7 @@ const MINE_TABS = [
   { key: "imported", label: "导入音乐" },
 ];
 
-function MineScreen({ allTracks, currentTrack, onSelect, onShowPlayer, favorites, recent, onImport, initialSubTab = "favorites" }) {
-  const [mineSubTab, setMineSubTab] = useState(initialSubTab);
+function MineScreen({ allTracks, currentTrack, onSelect, onShowPlayer, favorites, recent, onImport, mineSubTab, onSubTabChange }) {
 
   const filtered = useMemo(
     () => filterTracks(mineSubTab, allTracks, favorites, recent),
@@ -36,7 +35,7 @@ function MineScreen({ allTracks, currentTrack, onSelect, onShowPlayer, favorites
             <TouchableOpacity
               key={tab.key}
               style={styles.tab}
-              onPress={() => setMineSubTab(tab.key)}
+              onPress={() => onSubTabChange(tab.key)}
             >
               <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
                 {tab.label}

@@ -44,6 +44,7 @@ export default function App() {
   const [recent, setRecent] = useState([]);
   const [tab, setTab] = useState("songs");
   const [scope, setScope] = useState("songs");
+  const [mineSubTab, setMineSubTab] = useState("favorites");
   const [importedTracks, setImportedTracks] = useState([]);
   const allTracks = useMemo(() => [...playlist, ...novels, ...importedTracks], [importedTracks]);
 
@@ -230,6 +231,9 @@ export default function App() {
         await TrackPlayer.setRepeatMode(REPEAT_MAP[safeRepeat]);
         setTab(savedTab);
         setScope(savedScope);
+        if (["favorites", "recent", "imported"].includes(savedScope)) {
+          setMineSubTab(savedScope);
+        }
 
         const allTracksForRestore = [...playlist, ...novels, ...imported];
         const filtered = filterTracks(savedScope, allTracksForRestore, savedFavs, savedRecent);
@@ -339,8 +343,6 @@ export default function App() {
       Alert.alert("导入失败", "无法导入此文件");
     }
   };
-  const initialMineSubTab = ["favorites", "recent", "imported"].includes(scope) ? scope : "favorites";
-
   let content;
   if (initError) {
     content = (
@@ -405,7 +407,8 @@ export default function App() {
               favorites={favorites}
               recent={recent}
               onImport={handleImport}
-              initialSubTab={initialMineSubTab}
+              mineSubTab={mineSubTab}
+              onSubTabChange={setMineSubTab}
             />
           )}
         </View>
