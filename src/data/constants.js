@@ -20,3 +20,9 @@ export const REPEAT_MAP = {
   queue: RepeatMode.Queue,
   track: RepeatMode.Track,
 };
+
+export const NAV_TABS = [
+  { key: "songs", label: "歌曲", icon: "♫" },
+  { key: "novels", label: "小说", icon: "▤" },
+  { key: "mine", label: "我的", icon: "☻" },
+];
