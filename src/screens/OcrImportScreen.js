@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { launchImageLibrary, launchCamera } from "react-native-image-picker";
+import DocumentPicker from "react-native-document-picker";
 import TextRecognition, { TextRecognitionScript } from "@react-native-ml-kit/text-recognition";
 import RNFS from "react-native-fs";
 import { COLORS } from "../data/constants";
@@ -19,11 +20,31 @@ import OcrChapterEditScreen from "./OcrChapterEditScreen";
 
 const OCR_DIR = `${RNFS.DocumentDirectoryPath}/ocr-novels`;
 
+function categorizeFile(name) {
+  const ext = name.match(/\.(\w+)$/)?.[1].toLowerCase();
+  if (["jpg", "jpeg", "png"].includes(ext)) return "image";
+  if (ext === "txt") return "text";
+  if (["m4a", "mp3"].includes(ext)) return "audio";
+  return null;
+}
+
+function naturalCompare(a, b) {
+  const ax = [], bx = [];
+  a.name.replace(/(\d+)|(\D+)/g, (_, $1, $2) => { ax.push([$1 || Infinity, $2 || ""]); });
+  b.name.replace(/(\d+)|(\D+)/g, (_, $1, $2) => { bx.push([$1 || Infinity, $2 || ""]); });
+  while (ax.length && bx.length) {
+    const an = ax.shift(), bn = bx.shift();
+    const nn = (an[0] - bn[0]) || an[1].localeCompare(bn[1]);
+    if (nn) return nn;
+  }
+  return ax.length - bx.length;
+}
+
 function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete }) {
   const isAppendMode = !!existingBook;
   const [tempBookId] = useState(() => existingBook?.id || `ocr-${Date.now()}`);
   const [step, setStep] = useState("select-images");
-  const [images, setImages] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [bookTitle, setBookTitle] = useState(existingBook?.title || "");
@@ -56,8 +77,12 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       includeBase64: false,
     });
     if (result.didCancel || !result.assets) return;
-    const newUris = result.assets.map((a) => a.uri);
-    setImages((prev) => [...prev, ...newUris]);
+    const newFiles = result.assets.map((a) => ({
+      uri: a.uri,
+      type: "image",
+      name: a.fileName || `image-${Date.now()}.jpg`,
+    }));
+    setPendingFiles((prev) => [...prev, ...newFiles]);
   };
 
   const takePhoto = async () => {
@@ -66,49 +91,115 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       includeBase64: false,
     });
     if (result.didCancel || !result.assets) return;
-    setImages((prev) => [...prev, result.assets[0].uri]);
+    setPendingFiles((prev) => [
+      ...prev,
+      {
+        uri: result.assets[0].uri,
+        type: "image",
+        name: result.assets[0].fileName || `photo-${Date.now()}.jpg`,
+      },
+    ]);
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+  const pickFolder = async () => {
+    try {
+      const res = await DocumentPicker.pickDirectory();
+      const items = await RNFS.readDir(res.uri);
+      const files = items
+        .filter((it) => !it.isDirectory())
+        .map((it) => ({ uri: it.uri, name: it.name, type: categorizeFile(it.name) }))
+        .filter((f) => f.type !== null);
+      if (files.length === 0) {
+        Alert.alert("该目录没有可导入的文件");
+        return;
+      }
+      files.sort(naturalCompare);
+      setPendingFiles(files);
+      const folderName = res.name || res.uri.split("/").pop() || "";
+      if (!isAppendMode && !bookTitle) {
+        setBookTitle(folderName);
+      }
+    } catch (e) {
+      if (DocumentPicker.isCancel(e)) return;
+      Alert.alert("读取目录失败", e.message || "");
+    }
+  };
+
+  const removeFile = (index) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const deleteChapter = (index) => {
     setChapters((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const runOcr = async () => {
+  const runImport = async () => {
     setStep("ocr-processing");
-    setProgress({ current: 0, total: images.length });
+    setProgress({ current: 0, total: pendingFiles.length });
     await RNFS.mkdir(bookDir);
     const newChapters = [];
-    for (let i = 0; i < images.length; i++) {
+    for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      const id = `ch-${startIndex + i}`;
+      const title = `第 ${startIndex + i + 1} 章`;
       try {
-        const sandboxUri = await copyImageToSandbox(images[i], i, false);
-        const recognition = await TextRecognition.recognize(
-          sandboxUri,
-          TextRecognitionScript.CHINESE
-        );
-        newChapters.push({
-          id: `ch-${startIndex + i}`,
-          title: `第 ${startIndex + i + 1} 章`,
-          text: recognition.text || "",
-          sourceImagePath: sandboxUri,
-          audioPath: "",
-          ocrFailed: !recognition.text,
-        });
+        if (file.type === "image") {
+          let sandboxUri = "";
+          try {
+            sandboxUri = await copyImageToSandbox(file.uri, i, false);
+          } catch {
+            // copy failed, sandboxUri stays empty
+          }
+          let text = "";
+          if (sandboxUri) {
+            try {
+              const recognition = await TextRecognition.recognize(
+                sandboxUri,
+                TextRecognitionScript.CHINESE
+              );
+              text = recognition.text || "";
+            } catch {
+              // OCR failed, text stays empty
+            }
+          }
+          newChapters.push({
+            id, title, text,
+            sourceImagePath: sandboxUri,
+            audioPath: "",
+            ocrFailed: !text,
+          });
+        } else if (file.type === "text") {
+          let text = "";
+          try {
+            text = await RNFS.readFile(file.uri, "utf8");
+          } catch {
+            // read failed, text stays empty
+          }
+          newChapters.push({
+            id, title, text,
+            sourceImagePath: "",
+            audioPath: "",
+            ocrFailed: !text,
+          });
+        } else if (file.type === "audio") {
+          try {
+            const dest = `${bookDir}/${file.name}`;
+            await RNFS.copyFile(file.uri, dest);
+            newChapters.push({
+              id, title,
+              text: "",
+              sourceImagePath: "",
+              audioPath: `file://${dest}`,
+              ocrFailed: false,
+            });
+          } catch (e) {
+            Alert.alert(`${file.name} 导入失败，已跳过`);
+          }
+        }
       } catch (e) {
-        const sandboxUri = await copyImageToSandbox(images[i], i, false);
-        newChapters.push({
-          id: `ch-${startIndex + i}`,
-          title: `第 ${startIndex + i + 1} 章`,
-          text: "",
-          sourceImagePath: sandboxUri,
-          audioPath: "",
-          ocrFailed: true,
-        });
+        // Safety net - shouldn't reach here, but don't crash the batch
       }
-      setProgress({ current: i + 1, total: images.length });
+      setProgress({ current: i + 1, total: pendingFiles.length });
     }
     setChapters(newChapters);
     setStep("edit-chapters");
@@ -131,20 +222,27 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
 
     let coverPath = existingBook?.coverImage || "";
     if (!isAppendMode) {
-      try {
-        if (images.length > 0) {
-          await copyImageToSandbox(images[0], 0, true);
+      const firstImage = pendingFiles.find((f) => f.type === "image");
+      if (firstImage) {
+        try {
+          await copyImageToSandbox(firstImage.uri, 0, true);
+        } catch {
+          // Cover copy failure is non-fatal
         }
-      } catch {
-        // Cover copy failure is non-fatal
+        const coverExt = firstImage.uri.match(/\.(\w+)(\?|$)/)?.[1] || "jpg";
+        coverPath = `file://${bookDir}/cover.${coverExt}`;
       }
-      const coverExt = (images[0]?.match(/\.(\w+)(\?|$)/)?.[1]) || "jpg";
-      coverPath = `file://${bookDir}/cover.${coverExt}`;
     }
 
     const completedChapters = [];
     for (let i = 0; i < chapters.length; i++) {
       const ch = chapters[i];
+      if (ch.audioPath) {
+        // Already has audio (imported), skip TTS
+        completedChapters.push(ch);
+        setProgress({ current: i + 1, total: chapters.length });
+        continue;
+      }
       if (!ch.text.trim()) {
         setProgress({ current: i + 1, total: chapters.length });
         continue;
@@ -266,13 +364,23 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
                 <Text style={styles.outlineBtnText}>拍照</Text>
               </TouchableOpacity>
             </View>
-            {images.length > 0 && (
+            <TouchableOpacity onPress={pickFolder} style={[styles.outlineBtn, styles.fullWidthBtn]}>
+              <Text style={styles.outlineBtnText}>从文件夹导入</Text>
+            </TouchableOpacity>
+            {pendingFiles.length > 0 && (
               <ScrollView horizontal style={styles.thumbRow}>
-                {images.map((uri, i) => (
+                {pendingFiles.map((file, i) => (
                   <View key={i} style={styles.thumbWrap}>
-                    <Image source={{ uri }} style={styles.thumb} />
+                    {file.type === "image" ? (
+                      <Image source={{ uri: file.uri }} style={styles.thumb} />
+                    ) : (
+                      <View style={[styles.thumb, styles.thumbPlaceholder]}>
+                        <Text style={styles.thumbIcon}>{file.type === "text" ? "📄" : "🎵"}</Text>
+                        <Text style={styles.thumbName} numberOfLines={1}>{file.name}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity
-                      onPress={() => removeImage(i)}
+                      onPress={() => removeFile(i)}
                       style={styles.thumbRemove}
                     >
                       <Text style={styles.thumbRemoveText}>×</Text>
@@ -281,7 +389,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
                 ))}
               </ScrollView>
             )}
-            <Text style={styles.hint}>已选择 {images.length} 张图片</Text>
+            <Text style={styles.hint}>已选择 {pendingFiles.length} 个文件</Text>
           </View>
         )}
 
@@ -289,7 +397,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
           <View style={styles.centerBlock}>
             <ActivityIndicator size="large" color={COLORS.accent} />
             <Text style={styles.progressText}>
-              识别中 {progress.current}/{progress.total}...
+              导入中 {progress.current}/{progress.total}...
             </Text>
           </View>
         )}
@@ -297,25 +405,32 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         {step === "edit-chapters" && (
           <View>
             <Text style={styles.label}>章节列表（点击编辑）</Text>
-            {chapters.map((ch, i) => (
-              <View key={ch.id} style={styles.chapterRow}>
-                <TouchableOpacity
-                  style={styles.chapterInfo}
-                  onPress={() => setEditingIndex(i)}
-                >
-                  <Text style={styles.chapterTitle}>{ch.title}</Text>
-                  <Text style={styles.chapterPreview} numberOfLines={1}>
-                    {ch.text || "（识别为空，点击编辑）"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => deleteChapter(i)}
-                  style={styles.chapterDeleteBtn}
-                >
-                  <Text style={styles.chapterDeleteText}>删除</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+            {chapters.map((ch, i) => {
+              const audioName = ch.audioPath ? ch.audioPath.split("/").pop() : "";
+              const isAudio = !!ch.audioPath;
+              return (
+                <View key={ch.id} style={styles.chapterRow}>
+                  <TouchableOpacity
+                    style={styles.chapterInfo}
+                    onPress={() => !isAudio && setEditingIndex(i)}
+                    disabled={isAudio}
+                  >
+                    <Text style={styles.chapterTitle}>{ch.title}</Text>
+                    <Text style={styles.chapterPreview} numberOfLines={1}>
+                      {isAudio
+                        ? `🎵 ${audioName}`
+                        : ch.text || "（识别为空，点击编辑）"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => deleteChapter(i)}
+                    style={styles.chapterDeleteBtn}
+                  >
+                    <Text style={styles.chapterDeleteText}>删除</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </View>
         )}
 
@@ -345,11 +460,11 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       <View style={styles.footer}>
         {step === "select-images" && (
           <TouchableOpacity
-            onPress={runOcr}
-            disabled={images.length === 0}
-            style={[styles.primaryBtn, images.length === 0 && styles.primaryBtnDisabled]}
+            onPress={runImport}
+            disabled={pendingFiles.length === 0}
+            style={[styles.primaryBtn, pendingFiles.length === 0 && styles.primaryBtnDisabled]}
           >
-            <Text style={styles.primaryBtnText}>开始识别</Text>
+            <Text style={styles.primaryBtnText}>开始导入</Text>
           </TouchableOpacity>
         )}
         {step === "edit-chapters" && (
@@ -438,6 +553,10 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontWeight: "600",
   },
+  fullWidthBtn: {
+    marginTop: 12,
+    flex: 0,
+  },
   thumbRow: {
     marginTop: 16,
     flexDirection: "row",
@@ -467,6 +586,20 @@ const styles = StyleSheet.create({
     color: COLORS.primaryText,
     fontSize: 14,
     fontWeight: "700",
+  },
+  thumbPlaceholder: {
+    backgroundColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  thumbIcon: {
+    fontSize: 20,
+  },
+  thumbName: {
+    color: COLORS.secondaryText,
+    fontSize: 9,
+    marginTop: 2,
   },
   hint: {
     color: COLORS.secondaryText,
