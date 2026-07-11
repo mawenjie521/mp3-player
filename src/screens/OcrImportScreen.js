@@ -117,6 +117,9 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       files.sort(naturalCompare);
       setPendingFiles(files);
       setFolderName(res.name || res.uri.split("/").pop() || "");
+      if (!isAppendMode && !bookTitle) {
+        setBookTitle(res.name || res.uri.split("/").pop() || "");
+      }
     } catch (e) {
       if (DocumentPicker.isCancel(e)) return;
       Alert.alert("读取目录失败", e.message || "");
@@ -235,6 +238,12 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     const completedChapters = [];
     for (let i = 0; i < chapters.length; i++) {
       const ch = chapters[i];
+      if (ch.audioPath) {
+        // Already has audio (imported), skip TTS
+        completedChapters.push(ch);
+        setProgress({ current: i + 1, total: chapters.length });
+        continue;
+      }
       if (!ch.text.trim()) {
         setProgress({ current: i + 1, total: chapters.length });
         continue;
@@ -397,25 +406,32 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         {step === "edit-chapters" && (
           <View>
             <Text style={styles.label}>章节列表（点击编辑）</Text>
-            {chapters.map((ch, i) => (
-              <View key={ch.id} style={styles.chapterRow}>
-                <TouchableOpacity
-                  style={styles.chapterInfo}
-                  onPress={() => setEditingIndex(i)}
-                >
-                  <Text style={styles.chapterTitle}>{ch.title}</Text>
-                  <Text style={styles.chapterPreview} numberOfLines={1}>
-                    {ch.text || "（识别为空，点击编辑）"}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  onPress={() => deleteChapter(i)}
-                  style={styles.chapterDeleteBtn}
-                >
-                  <Text style={styles.chapterDeleteText}>删除</Text>
-                </TouchableOpacity>
-              </View>
-            ))}
+            {chapters.map((ch, i) => {
+              const audioName = ch.audioPath ? ch.audioPath.split("/").pop() : "";
+              const isAudio = !!ch.audioPath;
+              return (
+                <View key={ch.id} style={styles.chapterRow}>
+                  <TouchableOpacity
+                    style={styles.chapterInfo}
+                    onPress={() => !isAudio && setEditingIndex(i)}
+                    disabled={isAudio}
+                  >
+                    <Text style={styles.chapterTitle}>{ch.title}</Text>
+                    <Text style={styles.chapterPreview} numberOfLines={1}>
+                      {isAudio
+                        ? `🎵 ${audioName}`
+                        : ch.text || "（识别为空，点击编辑）"}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => deleteChapter(i)}
+                    style={styles.chapterDeleteBtn}
+                  >
+                    <Text style={styles.chapterDeleteText}>删除</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            })}
           </View>
         )}
 
