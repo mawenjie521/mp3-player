@@ -131,36 +131,71 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     setChapters((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const runOcr = async () => {
+  const runImport = async () => {
     setStep("ocr-processing");
     setProgress({ current: 0, total: pendingFiles.length });
     await RNFS.mkdir(bookDir);
     const newChapters = [];
     for (let i = 0; i < pendingFiles.length; i++) {
+      const file = pendingFiles[i];
+      const id = `ch-${startIndex + i}`;
+      const title = `第 ${startIndex + i + 1} 章`;
       try {
-        const sandboxUri = await copyImageToSandbox(pendingFiles[i].uri, i, false);
-        const recognition = await TextRecognition.recognize(
-          sandboxUri,
-          TextRecognitionScript.CHINESE
-        );
-        newChapters.push({
-          id: `ch-${startIndex + i}`,
-          title: `第 ${startIndex + i + 1} 章`,
-          text: recognition.text || "",
-          sourceImagePath: sandboxUri,
-          audioPath: "",
-          ocrFailed: !recognition.text,
-        });
+        if (file.type === "image") {
+          let sandboxUri = "";
+          try {
+            sandboxUri = await copyImageToSandbox(file.uri, i, false);
+          } catch {
+            // copy failed, sandboxUri stays empty
+          }
+          let text = "";
+          if (sandboxUri) {
+            try {
+              const recognition = await TextRecognition.recognize(
+                sandboxUri,
+                TextRecognitionScript.CHINESE
+              );
+              text = recognition.text || "";
+            } catch {
+              // OCR failed, text stays empty
+            }
+          }
+          newChapters.push({
+            id, title, text,
+            sourceImagePath: sandboxUri,
+            audioPath: "",
+            ocrFailed: !text,
+          });
+        } else if (file.type === "text") {
+          let text = "";
+          try {
+            text = await RNFS.readFile(file.uri, "utf8");
+          } catch {
+            // read failed, text stays empty
+          }
+          newChapters.push({
+            id, title, text,
+            sourceImagePath: "",
+            audioPath: "",
+            ocrFailed: !text,
+          });
+        } else if (file.type === "audio") {
+          try {
+            const dest = `${bookDir}/${file.name}`;
+            await RNFS.copyFile(file.uri, dest);
+            newChapters.push({
+              id, title,
+              text: "",
+              sourceImagePath: "",
+              audioPath: `file://${dest}`,
+              ocrFailed: false,
+            });
+          } catch (e) {
+            Alert.alert(`${file.name} 导入失败，已跳过`);
+          }
+        }
       } catch (e) {
-        const sandboxUri = await copyImageToSandbox(pendingFiles[i].uri, i, false);
-        newChapters.push({
-          id: `ch-${startIndex + i}`,
-          title: `第 ${startIndex + i + 1} 章`,
-          text: "",
-          sourceImagePath: sandboxUri,
-          audioPath: "",
-          ocrFailed: true,
-        });
+        // Safety net - shouldn't reach here, but don't crash the batch
       }
       setProgress({ current: i + 1, total: pendingFiles.length });
     }
@@ -354,7 +389,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
           <View style={styles.centerBlock}>
             <ActivityIndicator size="large" color={COLORS.accent} />
             <Text style={styles.progressText}>
-              识别中 {progress.current}/{progress.total}...
+              导入中 {progress.current}/{progress.total}...
             </Text>
           </View>
         )}
@@ -410,7 +445,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       <View style={styles.footer}>
         {step === "select-images" && (
           <TouchableOpacity
-            onPress={runOcr}
+            onPress={runImport}
             disabled={pendingFiles.length === 0}
             style={[styles.primaryBtn, pendingFiles.length === 0 && styles.primaryBtnDisabled]}
           >
