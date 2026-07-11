@@ -1,14 +1,31 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { COLORS } from "../data/constants";
 import TrackList from "../components/TrackList";
 
-function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onStartImport }) {
+function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onStartImport, onDeleteOCRNovel, onAddChapters }) {
   const handleSelect = (item) => {
     const queue = item.bookId
       ? tracks.filter((t) => t.bookId === item.bookId)
       : tracks;
     onSelect(item, queue, "novels");
+  };
+
+  const handleLongPress = (item) => {
+    if (!item.isOCR || !item.bookId) return;
+    const actions = [];
+    if (onAddChapters) {
+      actions.push({ text: "添加章节", onPress: () => onAddChapters(item.bookId) });
+    }
+    if (onDeleteOCRNovel) {
+      actions.push({
+        text: "删除",
+        style: "destructive",
+        onPress: () => onDeleteOCRNovel(item.bookId),
+      });
+    }
+    if (actions.length === 0) return;
+    Alert.alert(item.title, null, [...actions, { text: "取消", style: "cancel" }]);
   };
 
   return (
@@ -27,6 +44,7 @@ function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onStartImp
         currentTrack={currentTrack}
         onSelect={handleSelect}
         onShowPlayer={onShowPlayer}
+        onLongPress={handleLongPress}
         emptyText="还没有有声书"
       />
     </View>

@@ -24,7 +24,7 @@ import { novels } from "./src/data/novels";
 import { filterTracks } from "./src/data/filterTracks";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
-import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, expandOCRChapters, checkOCRFileExistence } from "./src/data/ocrNovels";
+import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
@@ -49,6 +49,7 @@ export default function App() {
   const [mineSubTab, setMineSubTab] = useState("favorites");
   const [importedTracks, setImportedTracks] = useState([]);
   const [ocrNovels, setOcrNovels] = useState([]);
+  const [appendTargetBook, setAppendTargetBook] = useState(null);
   const ocrNovelChapters = useMemo(() => expandOCRChapters(ocrNovels), [ocrNovels]);
   const novelsTracks = useMemo(() => [...novels, ...ocrNovelChapters], [ocrNovelChapters]);
   const allTracks = useMemo(
@@ -359,6 +360,14 @@ export default function App() {
   };
 
   const onStartImport = () => {
+    setAppendTargetBook(null);
+    setView("ocr-import");
+  };
+
+  const onAddChapters = (bookId) => {
+    const book = ocrNovels.find((b) => b.id === bookId);
+    if (!book) return;
+    setAppendTargetBook(book);
     setView("ocr-import");
   };
 
@@ -369,6 +378,27 @@ export default function App() {
     if (newChapters.length > 0) await TrackPlayer.add(newChapters);
     setView("tabs");
     setTab("novels");
+  };
+
+  const onAppendComplete = async (newChapters) => {
+    const bookId = appendTargetBook.id;
+    const updatedBooks = await appendOCRChapters(bookId, newChapters);
+    const updatedBook = updatedBooks.find((b) => b.id === bookId);
+    setOcrNovels(updatedBooks);
+    if (updatedBook) {
+      const newTracks = expandOCRChapters([updatedBook]).filter((t) =>
+        newChapters.some((ch) => t.id === `${bookId}/${ch.id}`)
+      );
+      if (newTracks.length > 0) await TrackPlayer.add(newTracks);
+    }
+    setAppendTargetBook(null);
+    setView("tabs");
+    setTab("novels");
+  };
+
+  const onOcrImportCancel = () => {
+    setAppendTargetBook(null);
+    setView("tabs");
   };
 
   const onDeleteOCRNovel = async (bookId) => {
@@ -420,7 +450,9 @@ export default function App() {
     content = (
       <OcrImportScreen
         onComplete={onImportComplete}
-        onCancel={() => setView("tabs")}
+        onCancel={onOcrImportCancel}
+        existingBook={appendTargetBook}
+        onAppendComplete={onAppendComplete}
       />
     );
   } else {
@@ -442,6 +474,8 @@ export default function App() {
               onSelect={onSelect}
               onShowPlayer={onShowPlayer}
               onStartImport={onStartImport}
+              onDeleteOCRNovel={onDeleteOCRNovel}
+              onAddChapters={onAddChapters}
             />
           )}
           {tab === "mine" && (

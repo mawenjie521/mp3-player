@@ -2,7 +2,7 @@ import React, { useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList } from "react-native";
 import { COLORS } from "../data/constants";
 
-function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, emptyText = "暂无内容" }) {
+function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, onLongPress, emptyText = "暂无内容" }) {
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -19,6 +19,7 @@ function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, emptyText = "
       <TouchableOpacity
         style={styles.listRow}
         onPress={() => onSelect(item)}
+        onLongPress={() => onLongPress && onLongPress(item)}
         activeOpacity={0.6}
       >
         <Image source={{ uri: item.artwork }} style={styles.listThumb} />

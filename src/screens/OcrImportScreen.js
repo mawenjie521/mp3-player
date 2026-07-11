@@ -19,20 +19,30 @@ import OcrChapterEditScreen from "./OcrChapterEditScreen";
 
 const OCR_DIR = `${RNFS.DocumentDirectoryPath}/ocr-novels`;
 
-function OcrImportScreen({ onComplete, onCancel }) {
-  const [tempBookId] = useState(() => `ocr-${Date.now()}`);
+function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete }) {
+  const isAppendMode = !!existingBook;
+  const [tempBookId] = useState(() => existingBook?.id || `ocr-${Date.now()}`);
   const [step, setStep] = useState("select-images");
   const [images, setImages] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
-  const [bookTitle, setBookTitle] = useState("");
+  const [bookTitle, setBookTitle] = useState(existingBook?.title || "");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const bookDir = `${OCR_DIR}/${tempBookId}`;
 
+  // In append mode, continue chapter numbering after the highest existing index
+  // so IDs and source-image filenames don't collide with existing chapters.
+  const startIndex = isAppendMode
+    ? existingBook.chapters.reduce((max, ch) => {
+        const match = ch.id.match(/^ch-(\d+)$/);
+        return match ? Math.max(max, parseInt(match[1], 10) + 1) : max;
+      }, 0)
+    : 0;
+
   const copyImageToSandbox = async (uri, index, isCover) => {
     const ext = uri.match(/\.(\w+)(\?|$)/)?.[1] || "jpg";
-    const filename = isCover ? `cover.${ext}` : `source-${index}.${ext}`;
+    const filename = isCover ? `cover.${ext}` : `source-${startIndex + index}.${ext}`;
     const dest = `${bookDir}/${filename}`;
     await RNFS.mkdir(bookDir);
     await RNFS.copyFile(uri, dest);
@@ -63,6 +73,10 @@ function OcrImportScreen({ onComplete, onCancel }) {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
+  const deleteChapter = (index) => {
+    setChapters((prev) => prev.filter((_, i) => i !== index));
+  };
+
   const runOcr = async () => {
     setStep("ocr-processing");
     setProgress({ current: 0, total: images.length });
@@ -76,8 +90,8 @@ function OcrImportScreen({ onComplete, onCancel }) {
           TextRecognitionScript.CHINESE
         );
         newChapters.push({
-          id: `ch-${i}`,
-          title: `第 ${i + 1} 章`,
+          id: `ch-${startIndex + i}`,
+          title: `第 ${startIndex + i + 1} 章`,
           text: recognition.text || "",
           sourceImagePath: sandboxUri,
           audioPath: "",
@@ -86,8 +100,8 @@ function OcrImportScreen({ onComplete, onCancel }) {
       } catch (e) {
         const sandboxUri = await copyImageToSandbox(images[i], i, false);
         newChapters.push({
-          id: `ch-${i}`,
-          title: `第 ${i + 1} 章`,
+          id: `ch-${startIndex + i}`,
+          title: `第 ${startIndex + i + 1} 章`,
           text: "",
           sourceImagePath: sandboxUri,
           audioPath: "",
@@ -108,23 +122,25 @@ function OcrImportScreen({ onComplete, onCancel }) {
   };
 
   const runTts = async () => {
-    if (!bookTitle.trim()) {
+    if (!isAppendMode && !bookTitle.trim()) {
       Alert.alert("请输入书名");
       return;
     }
     setStep("tts-generating");
     setProgress({ current: 0, total: chapters.length });
 
-    try {
-      if (images.length > 0) {
-        await copyImageToSandbox(images[0], 0, true);
+    let coverPath = existingBook?.coverImage || "";
+    if (!isAppendMode) {
+      try {
+        if (images.length > 0) {
+          await copyImageToSandbox(images[0], 0, true);
+        }
+      } catch {
+        // Cover copy failure is non-fatal
       }
-    } catch {
-      // Cover copy failure is non-fatal
+      const coverExt = (images[0]?.match(/\.(\w+)(\?|$)/)?.[1]) || "jpg";
+      coverPath = `file://${bookDir}/cover.${coverExt}`;
     }
-
-    const coverExt = (images[0]?.match(/\.(\w+)(\?|$)/)?.[1]) || "jpg";
-    const coverPath = `file://${bookDir}/cover.${coverExt}`;
 
     const completedChapters = [];
     for (let i = 0; i < chapters.length; i++) {
@@ -140,7 +156,7 @@ function OcrImportScreen({ onComplete, onCancel }) {
       } catch (e) {
         const action = await new Promise((resolve) => {
           Alert.alert(
-            `第 ${i + 1} 章合成失败`,
+            `${ch.title}合成失败`,
             e.message || "未知错误",
             [
               { text: "重试", onPress: () => resolve("retry") },
@@ -169,6 +185,19 @@ function OcrImportScreen({ onComplete, onCancel }) {
       return;
     }
 
+    if (isAppendMode) {
+      onAppendComplete(
+        completedChapters.map((ch) => ({
+          id: ch.id,
+          title: ch.title,
+          text: ch.text,
+          audioPath: ch.audioPath,
+          sourceImagePath: ch.sourceImagePath,
+        }))
+      );
+      return;
+    }
+
     const book = {
       id: tempBookId,
       title: bookTitle.trim(),
@@ -187,10 +216,12 @@ function OcrImportScreen({ onComplete, onCancel }) {
   };
 
   const cleanupAndCancel = async () => {
-    try {
-      await RNFS.unlink(bookDir);
-    } catch {
-      // ignore
+    if (!isAppendMode) {
+      try {
+        await RNFS.unlink(bookDir);
+      } catch {
+        // ignore
+      }
     }
     onCancel();
   };
@@ -219,7 +250,7 @@ function OcrImportScreen({ onComplete, onCancel }) {
         <TouchableOpacity onPress={confirmCancel} style={styles.backBtn}>
           <Text style={styles.backText}>‹ 返回</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>导入 OCR 小说</Text>
+        <Text style={styles.title}>{isAppendMode ? "添加章节" : "导入 OCR 小说"}</Text>
         <View style={styles.headerSpacer} />
       </View>
 
@@ -267,16 +298,23 @@ function OcrImportScreen({ onComplete, onCancel }) {
           <View>
             <Text style={styles.label}>章节列表（点击编辑）</Text>
             {chapters.map((ch, i) => (
-              <TouchableOpacity
-                key={ch.id}
-                style={styles.chapterRow}
-                onPress={() => setEditingIndex(i)}
-              >
-                <Text style={styles.chapterTitle}>{ch.title}</Text>
-                <Text style={styles.chapterPreview} numberOfLines={1}>
-                  {ch.text || "（识别为空，点击编辑）"}
-                </Text>
-              </TouchableOpacity>
+              <View key={ch.id} style={styles.chapterRow}>
+                <TouchableOpacity
+                  style={styles.chapterInfo}
+                  onPress={() => setEditingIndex(i)}
+                >
+                  <Text style={styles.chapterTitle}>{ch.title}</Text>
+                  <Text style={styles.chapterPreview} numberOfLines={1}>
+                    {ch.text || "（识别为空，点击编辑）"}
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => deleteChapter(i)}
+                  style={styles.chapterDeleteBtn}
+                >
+                  <Text style={styles.chapterDeleteText}>删除</Text>
+                </TouchableOpacity>
+              </View>
             ))}
           </View>
         )}
@@ -315,8 +353,14 @@ function OcrImportScreen({ onComplete, onCancel }) {
           </TouchableOpacity>
         )}
         {step === "edit-chapters" && (
-          <TouchableOpacity onPress={() => setStep("name-book")} style={styles.primaryBtn}>
-            <Text style={styles.primaryBtnText}>下一步</Text>
+          <TouchableOpacity
+            onPress={() => (isAppendMode ? runTts() : setStep("name-book"))}
+            disabled={chapters.length === 0}
+            style={[styles.primaryBtn, chapters.length === 0 && styles.primaryBtnDisabled]}
+          >
+            <Text style={styles.primaryBtnText}>
+              {isAppendMode ? "完成并生成语音" : "下一步"}
+            </Text>
           </TouchableOpacity>
         )}
         {step === "name-book" && (
@@ -324,7 +368,7 @@ function OcrImportScreen({ onComplete, onCancel }) {
             <TouchableOpacity onPress={() => setStep("edit-chapters")} style={styles.outlineBtn}>
               <Text style={styles.outlineBtnText}>上一步</Text>
             </TouchableOpacity>
-            <TouchableOpacity onPress={runTts} style={styles.primaryBtn}>
+            <TouchableOpacity onPress={runTts} style={[styles.primaryBtn, styles.primaryBtnFlex]}>
               <Text style={styles.primaryBtnText}>完成并生成语音</Text>
             </TouchableOpacity>
           </View>
@@ -440,9 +484,25 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   chapterRow: {
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: "#ffffff10",
+  },
+  chapterInfo: {
+    flex: 1,
+  },
+  chapterDeleteBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  chapterDeleteText: {
+    color: COLORS.accent,
+    fontSize: 13,
   },
   chapterTitle: {
     color: COLORS.primaryText,
@@ -473,6 +533,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     borderRadius: 24,
     alignItems: "center",
+    justifyContent: "center",
+  },
+  primaryBtnFlex: {
     flex: 1,
   },
   primaryBtnDisabled: {
