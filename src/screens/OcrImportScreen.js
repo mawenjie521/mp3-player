@@ -48,7 +48,6 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
   const [chapters, setChapters] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [bookTitle, setBookTitle] = useState(existingBook?.title || "");
-  const [folderName, setFolderName] = useState("");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const bookDir = `${OCR_DIR}/${tempBookId}`;
@@ -116,9 +115,9 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       }
       files.sort(naturalCompare);
       setPendingFiles(files);
-      setFolderName(res.name || res.uri.split("/").pop() || "");
+      const folderName = res.name || res.uri.split("/").pop() || "";
       if (!isAppendMode && !bookTitle) {
-        setBookTitle(res.name || res.uri.split("/").pop() || "");
+        setBookTitle(folderName);
       }
     } catch (e) {
       if (DocumentPicker.isCancel(e)) return;
@@ -224,15 +223,15 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     let coverPath = existingBook?.coverImage || "";
     if (!isAppendMode) {
       const firstImage = pendingFiles.find((f) => f.type === "image");
-      try {
-        if (firstImage) {
+      if (firstImage) {
+        try {
           await copyImageToSandbox(firstImage.uri, 0, true);
+        } catch {
+          // Cover copy failure is non-fatal
         }
-      } catch {
-        // Cover copy failure is non-fatal
+        const coverExt = firstImage.uri.match(/\.(\w+)(\?|$)/)?.[1] || "jpg";
+        coverPath = `file://${bookDir}/cover.${coverExt}`;
       }
-      const coverExt = (firstImage?.uri.match(/\.(\w+)(\?|$)/)?.[1]) || "jpg";
-      coverPath = `file://${bookDir}/cover.${coverExt}`;
     }
 
     const completedChapters = [];
@@ -465,7 +464,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
             disabled={pendingFiles.length === 0}
             style={[styles.primaryBtn, pendingFiles.length === 0 && styles.primaryBtnDisabled]}
           >
-            <Text style={styles.primaryBtnText}>开始识别</Text>
+            <Text style={styles.primaryBtnText}>开始导入</Text>
           </TouchableOpacity>
         )}
         {step === "edit-chapters" && (
