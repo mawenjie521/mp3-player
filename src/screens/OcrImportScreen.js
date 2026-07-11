@@ -11,6 +11,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { launchImageLibrary, launchCamera } from "react-native-image-picker";
+import DocumentPicker from "react-native-document-picker";
 import TextRecognition, { TextRecognitionScript } from "@react-native-ml-kit/text-recognition";
 import RNFS from "react-native-fs";
 import { COLORS } from "../data/constants";
@@ -18,6 +19,26 @@ import { synthesizeChapter } from "../data/tts";
 import OcrChapterEditScreen from "./OcrChapterEditScreen";
 
 const OCR_DIR = `${RNFS.DocumentDirectoryPath}/ocr-novels`;
+
+function categorizeFile(name) {
+  const ext = name.match(/\.(\w+)$/)?.[1].toLowerCase();
+  if (["jpg", "jpeg", "png"].includes(ext)) return "image";
+  if (ext === "txt") return "text";
+  if (["m4a", "mp3"].includes(ext)) return "audio";
+  return null;
+}
+
+function naturalCompare(a, b) {
+  const ax = [], bx = [];
+  a.name.replace(/(\d+)|(\D+)/g, (_, $1, $2) => { ax.push([$1 || Infinity, $2 || ""]); });
+  b.name.replace(/(\d+)|(\D+)/g, (_, $1, $2) => { bx.push([$1 || Infinity, $2 || ""]); });
+  while (ax.length && bx.length) {
+    const an = ax.shift(), bn = bx.shift();
+    const nn = (an[0] - bn[0]) || an[1].localeCompare(bn[1]);
+    if (nn) return nn;
+  }
+  return ax.length - bx.length;
+}
 
 function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete }) {
   const isAppendMode = !!existingBook;
@@ -27,6 +48,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
   const [chapters, setChapters] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [bookTitle, setBookTitle] = useState(existingBook?.title || "");
+  const [folderName, setFolderName] = useState("");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
   const bookDir = `${OCR_DIR}/${tempBookId}`;
@@ -78,6 +100,27 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         name: result.assets[0].fileName || `photo-${Date.now()}.jpg`,
       },
     ]);
+  };
+
+  const pickFolder = async () => {
+    try {
+      const res = await DocumentPicker.pickDirectory();
+      const items = await RNFS.readDir(res.uri);
+      const files = items
+        .filter((it) => !it.isDirectory())
+        .map((it) => ({ uri: it.uri, name: it.name, type: categorizeFile(it.name) }))
+        .filter((f) => f.type !== null);
+      if (files.length === 0) {
+        Alert.alert("该目录没有可导入的文件");
+        return;
+      }
+      files.sort(naturalCompare);
+      setPendingFiles(files);
+      setFolderName(res.name || res.uri.split("/").pop() || "");
+    } catch (e) {
+      if (DocumentPicker.isCancel(e)) return;
+      Alert.alert("读取目录失败", e.message || "");
+    }
   };
 
   const removeFile = (index) => {
@@ -278,6 +321,9 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
                 <Text style={styles.outlineBtnText}>拍照</Text>
               </TouchableOpacity>
             </View>
+            <TouchableOpacity onPress={pickFolder} style={[styles.outlineBtn, styles.fullWidthBtn]}>
+              <Text style={styles.outlineBtnText}>从文件夹导入</Text>
+            </TouchableOpacity>
             {pendingFiles.length > 0 && (
               <ScrollView horizontal style={styles.thumbRow}>
                 {pendingFiles.map((file, i) => (
@@ -456,6 +502,10 @@ const styles = StyleSheet.create({
     color: COLORS.accent,
     fontSize: 15,
     fontWeight: "600",
+  },
+  fullWidthBtn: {
+    marginTop: 12,
+    flex: 0,
   },
   thumbRow: {
     marginTop: 16,
