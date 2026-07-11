@@ -23,7 +23,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
   const isAppendMode = !!existingBook;
   const [tempBookId] = useState(() => existingBook?.id || `ocr-${Date.now()}`);
   const [step, setStep] = useState("select-images");
-  const [images, setImages] = useState([]);
+  const [pendingFiles, setPendingFiles] = useState([]);
   const [chapters, setChapters] = useState([]);
   const [editingIndex, setEditingIndex] = useState(null);
   const [bookTitle, setBookTitle] = useState(existingBook?.title || "");
@@ -56,8 +56,12 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       includeBase64: false,
     });
     if (result.didCancel || !result.assets) return;
-    const newUris = result.assets.map((a) => a.uri);
-    setImages((prev) => [...prev, ...newUris]);
+    const newFiles = result.assets.map((a) => ({
+      uri: a.uri,
+      type: "image",
+      name: a.fileName || `image-${Date.now()}.jpg`,
+    }));
+    setPendingFiles((prev) => [...prev, ...newFiles]);
   };
 
   const takePhoto = async () => {
@@ -66,11 +70,18 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       includeBase64: false,
     });
     if (result.didCancel || !result.assets) return;
-    setImages((prev) => [...prev, result.assets[0].uri]);
+    setPendingFiles((prev) => [
+      ...prev,
+      {
+        uri: result.assets[0].uri,
+        type: "image",
+        name: result.assets[0].fileName || `photo-${Date.now()}.jpg`,
+      },
+    ]);
   };
 
-  const removeImage = (index) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+  const removeFile = (index) => {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const deleteChapter = (index) => {
@@ -79,12 +90,12 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
 
   const runOcr = async () => {
     setStep("ocr-processing");
-    setProgress({ current: 0, total: images.length });
+    setProgress({ current: 0, total: pendingFiles.length });
     await RNFS.mkdir(bookDir);
     const newChapters = [];
-    for (let i = 0; i < images.length; i++) {
+    for (let i = 0; i < pendingFiles.length; i++) {
       try {
-        const sandboxUri = await copyImageToSandbox(images[i], i, false);
+        const sandboxUri = await copyImageToSandbox(pendingFiles[i].uri, i, false);
         const recognition = await TextRecognition.recognize(
           sandboxUri,
           TextRecognitionScript.CHINESE
@@ -98,7 +109,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
           ocrFailed: !recognition.text,
         });
       } catch (e) {
-        const sandboxUri = await copyImageToSandbox(images[i], i, false);
+        const sandboxUri = await copyImageToSandbox(pendingFiles[i].uri, i, false);
         newChapters.push({
           id: `ch-${startIndex + i}`,
           title: `第 ${startIndex + i + 1} 章`,
@@ -108,7 +119,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
           ocrFailed: true,
         });
       }
-      setProgress({ current: i + 1, total: images.length });
+      setProgress({ current: i + 1, total: pendingFiles.length });
     }
     setChapters(newChapters);
     setStep("edit-chapters");
@@ -131,14 +142,15 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
 
     let coverPath = existingBook?.coverImage || "";
     if (!isAppendMode) {
+      const firstImage = pendingFiles.find((f) => f.type === "image");
       try {
-        if (images.length > 0) {
-          await copyImageToSandbox(images[0], 0, true);
+        if (firstImage) {
+          await copyImageToSandbox(firstImage.uri, 0, true);
         }
       } catch {
         // Cover copy failure is non-fatal
       }
-      const coverExt = (images[0]?.match(/\.(\w+)(\?|$)/)?.[1]) || "jpg";
+      const coverExt = (firstImage?.uri.match(/\.(\w+)(\?|$)/)?.[1]) || "jpg";
       coverPath = `file://${bookDir}/cover.${coverExt}`;
     }
 
@@ -266,13 +278,20 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
                 <Text style={styles.outlineBtnText}>拍照</Text>
               </TouchableOpacity>
             </View>
-            {images.length > 0 && (
+            {pendingFiles.length > 0 && (
               <ScrollView horizontal style={styles.thumbRow}>
-                {images.map((uri, i) => (
+                {pendingFiles.map((file, i) => (
                   <View key={i} style={styles.thumbWrap}>
-                    <Image source={{ uri }} style={styles.thumb} />
+                    {file.type === "image" ? (
+                      <Image source={{ uri: file.uri }} style={styles.thumb} />
+                    ) : (
+                      <View style={[styles.thumb, styles.thumbPlaceholder]}>
+                        <Text style={styles.thumbIcon}>{file.type === "text" ? "📄" : "🎵"}</Text>
+                        <Text style={styles.thumbName} numberOfLines={1}>{file.name}</Text>
+                      </View>
+                    )}
                     <TouchableOpacity
-                      onPress={() => removeImage(i)}
+                      onPress={() => removeFile(i)}
                       style={styles.thumbRemove}
                     >
                       <Text style={styles.thumbRemoveText}>×</Text>
@@ -281,7 +300,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
                 ))}
               </ScrollView>
             )}
-            <Text style={styles.hint}>已选择 {images.length} 张图片</Text>
+            <Text style={styles.hint}>已选择 {pendingFiles.length} 个文件</Text>
           </View>
         )}
 
@@ -346,8 +365,8 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         {step === "select-images" && (
           <TouchableOpacity
             onPress={runOcr}
-            disabled={images.length === 0}
-            style={[styles.primaryBtn, images.length === 0 && styles.primaryBtnDisabled]}
+            disabled={pendingFiles.length === 0}
+            style={[styles.primaryBtn, pendingFiles.length === 0 && styles.primaryBtnDisabled]}
           >
             <Text style={styles.primaryBtnText}>开始识别</Text>
           </TouchableOpacity>
@@ -467,6 +486,20 @@ const styles = StyleSheet.create({
     color: COLORS.primaryText,
     fontSize: 14,
     fontWeight: "700",
+  },
+  thumbPlaceholder: {
+    backgroundColor: "#333",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 4,
+  },
+  thumbIcon: {
+    fontSize: 20,
+  },
+  thumbName: {
+    color: COLORS.secondaryText,
+    fontSize: 9,
+    marginTop: 2,
   },
   hint: {
     color: COLORS.secondaryText,
