@@ -92,13 +92,16 @@ export async function deleteOCRNovel(bookId) {
   return next;
 }
 
-export async function appendOCRChapters(bookId, newChapters) {
+export async function appendOCRChapters(bookId, newChapters, coverImage) {
   const existing = await loadOCRNovels();
-  const next = existing.map((b) =>
-    b.id === bookId
-      ? { ...b, chapters: [...b.chapters, ...newChapters] }
-      : b
-  );
+  const next = existing.map((b) => {
+    if (b.id !== bookId) return b;
+    const updated = { ...b, chapters: [...b.chapters, ...newChapters] };
+    if (coverImage && !b.coverImage) {
+      updated.coverImage = coverImage;
+    }
+    return updated;
+  });
   await saveJSON(STORAGE_KEY, next);
   return next;
 }
@@ -121,6 +124,22 @@ export function expandOCRChapters(books) {
         bookId: book.id,
       }))
   );
+}
+
+export function expandEmptyBooks(books) {
+  return books
+    .filter((b) => b.isOCR && b.chapters.length === 0)
+    .map((b) => ({
+      id: `${b.id}__empty`,
+      title: b.title,
+      artist: "暂无章节，长按添加",
+      artwork: "",
+      isNovel: true,
+      isOCR: true,
+      isEmptyBook: true,
+      bookId: b.id,
+      url: "",
+    }));
 }
 
 export async function checkOCRFileExistence(books) {
