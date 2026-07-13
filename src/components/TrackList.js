@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList } from "react-native";
 import { COLORS } from "../data/constants";
+import BookCover from "./BookCover";
 
 function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, onLongPress, emptyText = "暂无内容" }) {
   const listRef = useRef(null);
@@ -22,7 +23,7 @@ function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, onLongPress, 
         onLongPress={() => onLongPress && onLongPress(item)}
         activeOpacity={0.6}
       >
-        <Image source={{ uri: item.artwork }} style={styles.listThumb} />
+        <BookCover uri={item.artwork} title={item.title} style={styles.listThumb} />
         <View style={styles.listInfo}>
           <View style={styles.listTitleRow}>
             <Text style={[styles.listTitle, isActive && styles.listTitleActive]} numberOfLines={1}>

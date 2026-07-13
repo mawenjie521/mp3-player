@@ -20,10 +20,38 @@ function resolvePathNoProtocol(storedPath) {
   return resolvePath(storedPath).replace("file://", "");
 }
 
-// Derive the book's storage folder from any stored path. Needed because
-// new-layout books use <sanitized-title> as folder name (not bookId), so
-// we can't assume folder = `${OCR_DIR}/${book.id}`.
+export function sanitizeTitle(title) {
+  const trimmed = title.trim();
+  if (!trimmed) return "";
+  const cleaned = trimmed.replace(/[/:\x00\n\t]/g, "_");
+  return cleaned.length > 80 ? cleaned.substring(0, 80) : cleaned;
+}
+
+export async function computeBookDir(title, bookId) {
+  const base = sanitizeTitle(title);
+  if (!base) return `${OCR_DIR}/${bookId}`;
+  const candidate = `${OCR_DIR}/${base}`;
+  try {
+    if (!(await RNFS.exists(candidate))) return candidate;
+  } catch {
+    return candidate;
+  }
+  for (let i = 2; i <= 99; i++) {
+    const next = `${OCR_DIR}/${base} (${i})`;
+    try {
+      if (!(await RNFS.exists(next))) return next;
+    } catch {
+      return next;
+    }
+  }
+  return `${OCR_DIR}/${bookId}`;
+}
+
+// Derive the book's storage folder. Prefer an explicitly stored `bookDir`
+// (empty books have no cover/chapter to derive from). Then fall back to
+// coverImage, then first chapter audio, then bookId.
 export function getBookDir(book) {
+  if (book.bookDir) return resolvePathNoProtocol(book.bookDir);
   if (book.coverImage) {
     const path = resolvePathNoProtocol(book.coverImage);
     const lastSlash = path.lastIndexOf("/");
@@ -64,13 +92,16 @@ export async function deleteOCRNovel(bookId) {
   return next;
 }
 
-export async function appendOCRChapters(bookId, newChapters) {
+export async function appendOCRChapters(bookId, newChapters, coverImage) {
   const existing = await loadOCRNovels();
-  const next = existing.map((b) =>
-    b.id === bookId
-      ? { ...b, chapters: [...b.chapters, ...newChapters] }
-      : b
-  );
+  const next = existing.map((b) => {
+    if (b.id !== bookId) return b;
+    const updated = { ...b, chapters: [...b.chapters, ...newChapters] };
+    if (coverImage && !b.coverImage) {
+      updated.coverImage = coverImage;
+    }
+    return updated;
+  });
   await saveJSON(STORAGE_KEY, next);
   return next;
 }
@@ -93,6 +124,22 @@ export function expandOCRChapters(books) {
         bookId: book.id,
       }))
   );
+}
+
+export function expandEmptyBooks(books) {
+  return books
+    .filter((b) => b.isOCR && b.chapters.length === 0)
+    .map((b) => ({
+      id: `${b.id}__empty`,
+      title: b.title,
+      artist: "暂无章节，长按添加",
+      artwork: "",
+      isNovel: true,
+      isOCR: true,
+      isEmptyBook: true,
+      bookId: b.id,
+      url: "",
+    }));
 }
 
 export async function checkOCRFileExistence(books) {
