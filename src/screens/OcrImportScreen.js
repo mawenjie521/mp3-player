@@ -16,6 +16,7 @@ import TextRecognition, { TextRecognitionScript } from "@react-native-ml-kit/tex
 import RNFS from "react-native-fs";
 import { COLORS } from "../data/constants";
 import { synthesizeChapter } from "../data/tts";
+import { getBookDir } from "../data/ocrNovels";
 import OcrChapterEditScreen from "./OcrChapterEditScreen";
 
 const OCR_DIR = `${RNFS.DocumentDirectoryPath}/ocr-novels`;
@@ -40,6 +41,33 @@ function naturalCompare(a, b) {
   return ax.length - bx.length;
 }
 
+function sanitizeTitle(title) {
+  const trimmed = title.trim();
+  if (!trimmed) return "";
+  const cleaned = trimmed.replace(/[/:\x00\n\t]/g, "_");
+  return cleaned.length > 80 ? cleaned.substring(0, 80) : cleaned;
+}
+
+async function computeBookDir(title, bookId) {
+  const base = sanitizeTitle(title);
+  if (!base) return `${OCR_DIR}/${bookId}`;
+  const candidate = `${OCR_DIR}/${base}`;
+  try {
+    if (!(await RNFS.exists(candidate))) return candidate;
+  } catch {
+    return candidate;
+  }
+  for (let i = 2; i <= 99; i++) {
+    const next = `${OCR_DIR}/${base} (${i})`;
+    try {
+      if (!(await RNFS.exists(next))) return next;
+    } catch {
+      return next;
+    }
+  }
+  return `${OCR_DIR}/${bookId}`;
+}
+
 function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete }) {
   const isAppendMode = !!existingBook;
   const [tempBookId] = useState(() => existingBook?.id || `ocr-${Date.now()}`);
@@ -50,7 +78,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
   const [bookTitle, setBookTitle] = useState(existingBook?.title || "");
   const [progress, setProgress] = useState({ current: 0, total: 0 });
 
-  const bookDir = `${OCR_DIR}/${tempBookId}`;
+  const bookDir = isAppendMode ? getBookDir(existingBook) : `${OCR_DIR}/${tempBookId}`;
 
   // In append mode, continue chapter numbering after the highest existing index
   // so IDs and source-image filenames don't collide with existing chapters.
@@ -247,7 +275,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         setProgress({ current: i + 1, total: chapters.length });
         continue;
       }
-      const audioPath = `file://${bookDir}/${ch.id}.m4a`;
+      const audioPath = `file://${bookDir}/${ch.title}.m4a`;
       try {
         await synthesizeChapter(ch.text, audioPath.replace("file://", ""));
         completedChapters.push({ ...ch, audioPath });
@@ -283,6 +311,21 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       return;
     }
 
+    let finalDir = bookDir;
+    if (!isAppendMode) {
+      finalDir = await computeBookDir(bookTitle, tempBookId);
+      if (finalDir !== bookDir) {
+        try {
+          await RNFS.moveFile(bookDir, finalDir);
+        } catch {
+          // moveFile failed (disk full, permissions) - keep temp folder
+          finalDir = bookDir;
+        }
+      }
+    }
+    const resolveFinal = (p) =>
+      p ? p.replace(`file://${bookDir}`, `file://${finalDir}`) : p;
+
     if (isAppendMode) {
       onAppendComplete(
         completedChapters.map((ch) => ({
@@ -299,13 +342,13 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     const book = {
       id: tempBookId,
       title: bookTitle.trim(),
-      coverImage: coverPath,
+      coverImage: resolveFinal(coverPath),
       chapters: completedChapters.map((ch, i) => ({
         id: ch.id,
         title: ch.title,
         text: ch.text,
-        audioPath: ch.audioPath,
-        sourceImagePath: ch.sourceImagePath,
+        audioPath: resolveFinal(ch.audioPath),
+        sourceImagePath: resolveFinal(ch.sourceImagePath),
       })),
       createdAt: Date.now(),
       isOCR: true,
