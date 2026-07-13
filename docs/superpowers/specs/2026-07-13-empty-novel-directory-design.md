@@ -99,11 +99,12 @@ export function getBookDir(book) {
 
 - 新增 state：`showCreateEmptyBook`（boolean）
 - `onCreateEmptyBook(title)`（async）：
-  1. `bookDir = await computeBookDir(title, tempBookId)`（冲突检测同新书流程）
-  2. `await RNFS.mkdir(bookDir)`（立即创建文件夹，保证后续同名书得到 `<title> (2)`）
-  3. 构造空 book 对象，`bookDir` 存为 `file://${bookDir}`
-  4. `saveOCRNovel(book)` -> 前插到存储
-  5. `setOcrNovels(next)`、关闭 modal、`setTab("novels")`
+  1. `const bookId = \`ocr-${Date.now()}\``（即 book 的 `id`）
+  2. `bookDir = await computeBookDir(title, bookId)`（冲突检测同新书流程，`bookId` 仅作 sanitize 失败时的回退文件夹名）
+  3. `await RNFS.mkdir(bookDir)`（立即创建文件夹，保证后续同名书得到 `<title> (2)`）
+  4. 构造空 book 对象（`id: bookId`、`bookDir: \`file://${bookDir}\``、`coverImage: ""`、`chapters: []`、`isOCR: true`、`createdAt: Date.now()`）
+  5. `saveOCRNovel(book)` -> 前插到存储
+  6. `setOcrNovels(next)`、关闭 modal、`setTab("novels")`
 
 ## 展示与交互
 
@@ -141,9 +142,9 @@ const novelsTracks = [...novels, ...ocrEmptyBooks, ...ocrNovelChapters];
 
 - 当前：`isAppendMode` 时 `coverPath = existingBook?.coverImage || ""`，不拷封面。
 - 改为：`isAppendMode && !existingBook.coverImage` 且 `pendingFiles` 含图片时，拷贝第一张为 `cover.<ext>`，`coverPath = file://${bookDir}/cover.${ext}`。
-- `onAppendComplete` 的 payload 从「章节数组」扩展为 `{ chapters, coverImage }`（或加第二参数）。
-- `appendOCRChapters(bookId, newChapters, coverImage?)`：若传入 `coverImage` 且书的 `coverImage` 为空，则设置；否则不动。
-- App.js `onAppendComplete` 透传 `coverImage`。
+- `onAppendComplete` 的 payload 从「章节数组」改为对象 `{ chapters, coverImage }`，其中 `coverImage` 为拷贝到的封面路径（无封面时为空串）。
+- `appendOCRChapters(bookId, newChapters, coverImage)`：新增第三参数（可选）。若传入的 `coverImage` 非空且书的 `coverImage` 为空，则设置；否则不动。
+- App.js `onAppendComplete({ chapters, coverImage })` 解构后调用 `appendOCRChapters(bookId, chapters, coverImage)`。
 
 ## 边界情况
 
@@ -167,13 +168,13 @@ const novelsTracks = [...novels, ...ocrEmptyBooks, ...ocrNovelChapters];
 
 ## 涉及文件
 
-- `src/data/ocrNovels.js` —— `getBookDir` 加 `bookDir` 分支；提取 `computeBookDir`/`sanitizeTitle` 并导出；新增 `expandEmptyBooks`；`appendOCRChapters` 加可选 `coverImage`。
-- `src/screens/OcrImportScreen.js` —— 从 `ocrNovels.js` 导入 `computeBookDir`/`sanitizeTitle`；追加模式补封面拷贝；`onAppendComplete` payload 带 `coverImage`。
+- `src/data/ocrNovels.js` —— `getBookDir` 加 `bookDir` 分支；提取 `computeBookDir`/`sanitizeTitle` 并导出；新增 `expandEmptyBooks`；`appendOCRChapters` 加可选第三参数 `coverImage`。
+- `src/screens/OcrImportScreen.js` —— 从 `ocrNovels.js` 导入 `computeBookDir`/`sanitizeTitle`；追加模式补封面拷贝；`onAppendComplete` payload 改为 `{ chapters, coverImage }`。
 - `src/components/CreateEmptyBookModal.js` —— 新文件。
 - `src/components/TrackList.js` —— `artwork` 为空时渲染占位。
 - `src/screens/NovelsScreen.js` —— `onAdd` prop 替代直接 `onStartImport`；`handleSelect` 守卫 `isEmptyBook`。
 - `src/screens/MineScreen.js` —— 占位封面；书行 `onLongPress` 菜单；新 `onAddChapters` prop。
-- `App.js` —— `onAdd` Alert；`showCreateEmptyBook` state；`onCreateEmptyBook` 处理器；给 MineScreen 传 `onAddChapters`；`onAppendComplete` 透传 `coverImage`。
+- `App.js` —— `onAdd` Alert；`showCreateEmptyBook` state；`onCreateEmptyBook` 处理器；给 MineScreen 传 `onAddChapters`；`onAppendComplete` 解构 `{ chapters, coverImage }` 后调 `appendOCRChapters`。
 
 ## 后续跟进（不在本次范围）
 
