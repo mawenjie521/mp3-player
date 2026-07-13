@@ -1,8 +1,9 @@
 import React, { useMemo } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
 import { COLORS } from "../data/constants";
 import { filterTracks } from "../data/filterTracks";
 import TrackList from "../components/TrackList";
+import BookCover from "../components/BookCover";
 
 const MINE_TABS = [
   { key: "favorites", label: "收藏" },
@@ -23,6 +24,7 @@ function MineScreen({
   onSubTabChange,
   ocrNovels,
   onDeleteOCRNovel,
+  onAddChapters,
 }) {
   const filtered = useMemo(
     () => filterTracks(mineSubTab, allTracks, favorites, recent),
@@ -43,9 +45,22 @@ function MineScreen({
     ]);
   };
 
+  const handleBookLongPress = (book) => {
+    const actions = [];
+    if (onAddChapters) {
+      actions.push({ text: "添加章节", onPress: () => onAddChapters(book.id) });
+    }
+    actions.push({ text: "删除", style: "destructive", onPress: () => confirmDelete(book) });
+    Alert.alert(book.title, null, [...actions, { text: "取消", style: "cancel" }]);
+  };
+
   const renderOcrBook = ({ item }) => (
-    <View style={styles.bookRow}>
-      <Image source={{ uri: item.coverImage }} style={styles.bookCover} />
+    <TouchableOpacity
+      style={styles.bookRow}
+      onLongPress={() => handleBookLongPress(item)}
+      activeOpacity={0.6}
+    >
+      <BookCover uri={item.coverImage} title={item.title} style={styles.bookCover} />
       <View style={styles.bookInfo}>
         <Text style={styles.bookTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.bookMeta}>{item.chapters.length} 章</Text>
@@ -53,7 +68,7 @@ function MineScreen({
       <TouchableOpacity onPress={() => confirmDelete(item)} style={styles.deleteBtn}>
         <Text style={styles.deleteBtnText}>删除</Text>
       </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 
   return (

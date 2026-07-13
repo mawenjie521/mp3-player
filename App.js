@@ -529,6 +529,7 @@ export default function App() {
               onSubTabChange={setMineSubTab}
               ocrNovels={ocrNovels}
               onDeleteOCRNovel={onDeleteOCRNovel}
+              onAddChapters={onAddChapters}
             />
           )}
         </View>
