@@ -418,14 +418,14 @@ export default function App() {
     setTab("novels");
   };
 
-  const onAppendComplete = async (newChapters) => {
+  const onAppendComplete = async ({ chapters, coverImage }) => {
     const bookId = appendTargetBook.id;
-    const updatedBooks = await appendOCRChapters(bookId, newChapters);
+    const updatedBooks = await appendOCRChapters(bookId, chapters, coverImage);
     const updatedBook = updatedBooks.find((b) => b.id === bookId);
     setOcrNovels(updatedBooks);
     if (updatedBook) {
       const newTracks = expandOCRChapters([updatedBook]).filter((t) =>
-        newChapters.some((ch) => t.id === `${bookId}/${ch.id}`)
+        chapters.some((ch) => t.id === `${bookId}/${ch.id}`)
       );
       if (newTracks.length > 0) await TrackPlayer.add(newTracks);
     }

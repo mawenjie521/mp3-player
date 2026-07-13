@@ -222,7 +222,8 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     setProgress({ current: 0, total: chapters.length });
 
     let coverPath = existingBook?.coverImage || "";
-    if (!isAppendMode) {
+    const needsCoverCopy = isAppendMode ? !existingBook?.coverImage : true;
+    if (needsCoverCopy) {
       const firstImage = pendingFiles.find((f) => f.type === "image");
       if (firstImage) {
         try {
@@ -300,15 +301,16 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
       p ? p.replace(`file://${bookDir}`, `file://${finalDir}`) : p;
 
     if (isAppendMode) {
-      onAppendComplete(
-        completedChapters.map((ch) => ({
+      onAppendComplete({
+        chapters: completedChapters.map((ch) => ({
           id: ch.id,
           title: ch.title,
           text: ch.text,
           audioPath: ch.audioPath,
           sourceImagePath: ch.sourceImagePath,
-        }))
-      );
+        })),
+        coverImage: coverPath,
+      });
       return;
     }
 
