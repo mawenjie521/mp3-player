@@ -20,6 +20,24 @@ function resolvePathNoProtocol(storedPath) {
   return resolvePath(storedPath).replace("file://", "");
 }
 
+// Derive the book's storage folder from any stored path. Needed because
+// new-layout books use <sanitized-title> as folder name (not bookId), so
+// we can't assume folder = `${OCR_DIR}/${book.id}`.
+export function getBookDir(book) {
+  if (book.coverImage) {
+    const path = resolvePathNoProtocol(book.coverImage);
+    const lastSlash = path.lastIndexOf("/");
+    return lastSlash > 0 ? path.substring(0, lastSlash) : path;
+  }
+  const chWithAudio = book.chapters?.find((ch) => ch.audioPath);
+  if (chWithAudio) {
+    const path = resolvePathNoProtocol(chWithAudio.audioPath);
+    const lastSlash = path.lastIndexOf("/");
+    return lastSlash > 0 ? path.substring(0, lastSlash) : path;
+  }
+  return `${OCR_DIR}/${book.id}`;
+}
+
 export async function loadOCRNovels() {
   return loadJSON(STORAGE_KEY, []);
 }
@@ -33,12 +51,15 @@ export async function saveOCRNovel(book) {
 
 export async function deleteOCRNovel(bookId) {
   const existing = await loadOCRNovels();
+  const book = existing.find((b) => b.id === bookId);
   const next = existing.filter((b) => b.id !== bookId);
   await saveJSON(STORAGE_KEY, next);
-  try {
-    await RNFS.unlink(`${OCR_DIR}/${bookId}`);
-  } catch {
-    // Directory may not exist - ignore
+  if (book) {
+    try {
+      await RNFS.unlink(getBookDir(book));
+    } catch {
+      // Directory may not exist - ignore
+    }
   }
   return next;
 }
