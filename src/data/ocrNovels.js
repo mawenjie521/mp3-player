@@ -20,10 +20,38 @@ function resolvePathNoProtocol(storedPath) {
   return resolvePath(storedPath).replace("file://", "");
 }
 
-// Derive the book's storage folder from any stored path. Needed because
-// new-layout books use <sanitized-title> as folder name (not bookId), so
-// we can't assume folder = `${OCR_DIR}/${book.id}`.
+export function sanitizeTitle(title) {
+  const trimmed = title.trim();
+  if (!trimmed) return "";
+  const cleaned = trimmed.replace(/[/:\x00\n\t]/g, "_");
+  return cleaned.length > 80 ? cleaned.substring(0, 80) : cleaned;
+}
+
+export async function computeBookDir(title, bookId) {
+  const base = sanitizeTitle(title);
+  if (!base) return `${OCR_DIR}/${bookId}`;
+  const candidate = `${OCR_DIR}/${base}`;
+  try {
+    if (!(await RNFS.exists(candidate))) return candidate;
+  } catch {
+    return candidate;
+  }
+  for (let i = 2; i <= 99; i++) {
+    const next = `${OCR_DIR}/${base} (${i})`;
+    try {
+      if (!(await RNFS.exists(next))) return next;
+    } catch {
+      return next;
+    }
+  }
+  return `${OCR_DIR}/${bookId}`;
+}
+
+// Derive the book's storage folder. Prefer an explicitly stored `bookDir`
+// (empty books have no cover/chapter to derive from). Then fall back to
+// coverImage, then first chapter audio, then bookId.
 export function getBookDir(book) {
+  if (book.bookDir) return resolvePathNoProtocol(book.bookDir);
   if (book.coverImage) {
     const path = resolvePathNoProtocol(book.coverImage);
     const lastSlash = path.lastIndexOf("/");

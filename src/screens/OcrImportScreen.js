@@ -16,7 +16,7 @@ import TextRecognition, { TextRecognitionScript } from "@react-native-ml-kit/tex
 import RNFS from "react-native-fs";
 import { COLORS } from "../data/constants";
 import { synthesizeChapter } from "../data/tts";
-import { getBookDir } from "../data/ocrNovels";
+import { getBookDir, computeBookDir } from "../data/ocrNovels";
 import OcrChapterEditScreen from "./OcrChapterEditScreen";
 
 const OCR_DIR = `${RNFS.DocumentDirectoryPath}/ocr-novels`;
@@ -39,33 +39,6 @@ function naturalCompare(a, b) {
     if (nn) return nn;
   }
   return ax.length - bx.length;
-}
-
-function sanitizeTitle(title) {
-  const trimmed = title.trim();
-  if (!trimmed) return "";
-  const cleaned = trimmed.replace(/[/:\x00\n\t]/g, "_");
-  return cleaned.length > 80 ? cleaned.substring(0, 80) : cleaned;
-}
-
-async function computeBookDir(title, bookId) {
-  const base = sanitizeTitle(title);
-  if (!base) return `${OCR_DIR}/${bookId}`;
-  const candidate = `${OCR_DIR}/${base}`;
-  try {
-    if (!(await RNFS.exists(candidate))) return candidate;
-  } catch {
-    return candidate;
-  }
-  for (let i = 2; i <= 99; i++) {
-    const next = `${OCR_DIR}/${base} (${i})`;
-    try {
-      if (!(await RNFS.exists(next))) return next;
-    } catch {
-      return next;
-    }
-  }
-  return `${OCR_DIR}/${bookId}`;
 }
 
 function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete }) {
