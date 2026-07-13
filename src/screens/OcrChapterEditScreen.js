@@ -1,12 +1,12 @@
 import React, { useState } from "react";
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 import { COLORS } from "../data/constants";
 
 function OcrChapterEditScreen({ chapterTitle, initialText, onSave, onBack }) {
   const [text, setText] = useState(initialText);
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={onBack} style={styles.backBtn}>
           <Text style={styles.backText}>‹ 返回</Text>
@@ -35,7 +35,7 @@ function OcrChapterEditScreen({ chapterTitle, initialText, onSave, onBack }) {
           <Text style={styles.saveBtnText}>保存</Text>
         </TouchableOpacity>
       </KeyboardAvoidingView>
-    </View>
+    </SafeAreaView>
   );
 }
 
