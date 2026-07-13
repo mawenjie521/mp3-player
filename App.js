@@ -24,7 +24,7 @@ import { novels } from "./src/data/novels";
 import { filterTracks } from "./src/data/filterTracks";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
-import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence } from "./src/data/ocrNovels";
+import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, expandEmptyBooks, checkOCRFileExistence, computeBookDir } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
@@ -33,6 +33,8 @@ import MineScreen from "./src/screens/MineScreen";
 import OcrImportScreen from "./src/screens/OcrImportScreen";
 import BottomNav from "./src/components/BottomNav";
 import ErrorBoundary from "./src/error/ErrorBoundary";
+import RNFS from "react-native-fs";
+import CreateEmptyBookModal from "./src/components/CreateEmptyBookModal";
 
 export default function App() {
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -50,8 +52,13 @@ export default function App() {
   const [importedTracks, setImportedTracks] = useState([]);
   const [ocrNovels, setOcrNovels] = useState([]);
   const [appendTargetBook, setAppendTargetBook] = useState(null);
+  const [showCreateEmptyBook, setShowCreateEmptyBook] = useState(false);
   const ocrNovelChapters = useMemo(() => expandOCRChapters(ocrNovels), [ocrNovels]);
-  const novelsTracks = useMemo(() => [...novels, ...ocrNovelChapters], [ocrNovelChapters]);
+  const ocrEmptyBooks = useMemo(() => expandEmptyBooks(ocrNovels), [ocrNovels]);
+  const novelsTracks = useMemo(
+    () => [...novels, ...ocrEmptyBooks, ...ocrNovelChapters],
+    [novels, ocrEmptyBooks, ocrNovelChapters]
+  );
   const allTracks = useMemo(
     () => [...playlist, ...novels, ...importedTracks, ...ocrNovelChapters],
     [importedTracks, ocrNovelChapters]
@@ -364,6 +371,37 @@ export default function App() {
     setView("ocr-import");
   };
 
+  const onAdd = () => {
+    Alert.alert("添加小说", null, [
+      { text: "导入文件创建", onPress: onStartImport },
+      { text: "创建空小说", onPress: () => setShowCreateEmptyBook(true) },
+      { text: "取消", style: "cancel" },
+    ]);
+  };
+
+  const onCreateEmptyBook = async (title) => {
+    const bookId = `ocr-${Date.now()}`;
+    const bookDir = await computeBookDir(title, bookId);
+    try {
+      await RNFS.mkdir(bookDir);
+    } catch {
+      // dir may already exist; ignore
+    }
+    const book = {
+      id: bookId,
+      title,
+      coverImage: "",
+      chapters: [],
+      createdAt: Date.now(),
+      isOCR: true,
+      bookDir: `file://${bookDir}`,
+    };
+    const next = await saveOCRNovel(book);
+    setOcrNovels(next);
+    setShowCreateEmptyBook(false);
+    setTab("novels");
+  };
+
   const onAddChapters = (bookId) => {
     const book = ocrNovels.find((b) => b.id === bookId);
     if (!book) return;
@@ -473,7 +511,7 @@ export default function App() {
               currentTrack={currentTrack}
               onSelect={onSelect}
               onShowPlayer={onShowPlayer}
-              onStartImport={onStartImport}
+              onAdd={onAdd}
               onDeleteOCRNovel={onDeleteOCRNovel}
               onAddChapters={onAddChapters}
             />
@@ -494,6 +532,11 @@ export default function App() {
             />
           )}
         </View>
+        <CreateEmptyBookModal
+          visible={showCreateEmptyBook}
+          onCreate={onCreateEmptyBook}
+          onCancel={() => setShowCreateEmptyBook(false)}
+        />
         <BottomNav activeTab={tab} onChange={setTab} />
       </SafeAreaView>
     );

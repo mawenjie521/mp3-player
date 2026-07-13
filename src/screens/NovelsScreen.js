@@ -3,11 +3,11 @@ import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { COLORS } from "../data/constants";
 import TrackList from "../components/TrackList";
 
-function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onStartImport, onDeleteOCRNovel, onAddChapters }) {
+function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onAdd, onDeleteOCRNovel, onAddChapters }) {
   const handleSelect = (item) => {
-    const queue = item.bookId
-      ? tracks.filter((t) => t.bookId === item.bookId)
-      : tracks;
+    if (item.isEmptyBook) return;
+    const playable = tracks.filter((t) => !t.isEmptyBook);
+    const queue = item.bookId ? playable.filter((t) => t.bookId === item.bookId) : playable;
     onSelect(item, queue, "novels");
   };
 
@@ -35,7 +35,7 @@ function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onStartImp
           <Text style={styles.title}>小说</Text>
           <Text style={styles.subtitle}>共 {tracks.length} 首</Text>
         </View>
-        <TouchableOpacity onPress={onStartImport} style={styles.addBtn}>
+        <TouchableOpacity onPress={onAdd} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
       </View>
