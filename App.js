@@ -381,25 +381,29 @@ export default function App() {
 
   const onCreateEmptyBook = async (title) => {
     const bookId = `ocr-${Date.now()}`;
-    const bookDir = await computeBookDir(title, bookId);
     try {
-      await RNFS.mkdir(bookDir);
-    } catch {
-      // dir may already exist; ignore
+      const bookDir = await computeBookDir(title, bookId);
+      try {
+        await RNFS.mkdir(bookDir);
+      } catch {
+        // dir may already exist; ignore
+      }
+      const book = {
+        id: bookId,
+        title,
+        coverImage: "",
+        chapters: [],
+        createdAt: Date.now(),
+        isOCR: true,
+        bookDir: `file://${bookDir}`,
+      };
+      const next = await saveOCRNovel(book);
+      setOcrNovels(next);
+      setShowCreateEmptyBook(false);
+      setTab("novels");
+    } catch (e) {
+      Alert.alert("创建失败", "无法创建空小说");
     }
-    const book = {
-      id: bookId,
-      title,
-      coverImage: "",
-      chapters: [],
-      createdAt: Date.now(),
-      isOCR: true,
-      bookDir: `file://${bookDir}`,
-    };
-    const next = await saveOCRNovel(book);
-    setOcrNovels(next);
-    setShowCreateEmptyBook(false);
-    setTab("novels");
   };
 
   const onAddChapters = (bookId) => {
