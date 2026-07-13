@@ -24,13 +24,14 @@ import { novels } from "./src/data/novels";
 import { filterTracks } from "./src/data/filterTracks";
 import { loadJSON, saveJSON } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
-import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, expandEmptyBooks, checkOCRFileExistence, computeBookDir } from "./src/data/ocrNovels";
+import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence, computeBookDir } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
 import NovelsScreen from "./src/screens/NovelsScreen";
 import MineScreen from "./src/screens/MineScreen";
 import OcrImportScreen from "./src/screens/OcrImportScreen";
+import NovelDetailScreen from "./src/screens/NovelDetailScreen";
 import BottomNav from "./src/components/BottomNav";
 import ErrorBoundary from "./src/error/ErrorBoundary";
 import RNFS from "react-native-fs";
@@ -53,11 +54,28 @@ export default function App() {
   const [ocrNovels, setOcrNovels] = useState([]);
   const [appendTargetBook, setAppendTargetBook] = useState(null);
   const [showCreateEmptyBook, setShowCreateEmptyBook] = useState(false);
+  const [selectedNovelId, setSelectedNovelId] = useState(null);
   const ocrNovelChapters = useMemo(() => expandOCRChapters(ocrNovels), [ocrNovels]);
-  const ocrEmptyBooks = useMemo(() => expandEmptyBooks(ocrNovels), [ocrNovels]);
-  const novelsTracks = useMemo(
-    () => [...novels, ...ocrEmptyBooks, ...ocrNovelChapters],
-    [novels, ocrEmptyBooks, ocrNovelChapters]
+  const novelCards = useMemo(
+    () => [
+      ...novels.map((n) => ({
+        id: n.id,
+        title: n.title,
+        coverImage: n.artwork,
+        chapterCount: 1,
+        isOCR: false,
+        track: n,
+      })),
+      ...ocrNovels.map((b) => ({
+        id: b.id,
+        title: b.title,
+        coverImage: b.coverImage,
+        chapterCount: b.chapters.length,
+        isOCR: true,
+        book: b,
+      })),
+    ],
+    [novels, ocrNovels]
   );
   const allTracks = useMemo(
     () => [...playlist, ...novels, ...importedTracks, ...ocrNovelChapters],
@@ -342,6 +360,17 @@ export default function App() {
 
   const onShowPlayer = () => setView("player");
 
+  const onSelectNovel = (card) => {
+    setSelectedNovelId(card.id);
+    setView("novel-detail");
+  };
+
+  const onBackFromDetail = () => {
+    setSelectedNovelId(null);
+    setView("tabs");
+    setTab("novels");
+  };
+
   const toggleFavorite = (id) => {
     setFavorites((prev) => {
       const next = prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
@@ -400,7 +429,8 @@ export default function App() {
       const next = await saveOCRNovel(book);
       setOcrNovels(next);
       setShowCreateEmptyBook(false);
-      setTab("novels");
+      setSelectedNovelId(bookId);
+      setView("novel-detail");
     } catch (e) {
       Alert.alert("创建失败", "无法创建空小说");
     }
@@ -434,13 +464,21 @@ export default function App() {
       if (newTracks.length > 0) await TrackPlayer.add(newTracks);
     }
     setAppendTargetBook(null);
-    setView("tabs");
-    setTab("novels");
+    if (selectedNovelId) {
+      setView("novel-detail");
+    } else {
+      setView("tabs");
+      setTab("novels");
+    }
   };
 
   const onOcrImportCancel = () => {
     setAppendTargetBook(null);
-    setView("tabs");
+    if (selectedNovelId) {
+      setView("novel-detail");
+    } else {
+      setView("tabs");
+    }
   };
 
   const onDeleteOCRNovel = async (bookId) => {
@@ -452,6 +490,9 @@ export default function App() {
     const next = await deleteOCRNovel(bookId);
     setOcrNovels(next);
   };
+  const selectedCard = view === "novel-detail"
+    ? novelCards.find((c) => c.id === selectedNovelId)
+    : null;
   let content;
   if (initError) {
     content = (
@@ -497,6 +538,18 @@ export default function App() {
         onAppendComplete={onAppendComplete}
       />
     );
+  } else if (view === "novel-detail" && selectedCard) {
+    content = (
+      <NovelDetailScreen
+        novel={selectedCard}
+        currentTrack={currentTrack}
+        onSelect={onSelect}
+        onShowPlayer={onShowPlayer}
+        onBack={onBackFromDetail}
+        onAddChapters={onAddChapters}
+        onDeleteOCRNovel={onDeleteOCRNovel}
+      />
+    );
   } else {
     content = (
       <SafeAreaView style={styles.container}>
@@ -511,13 +564,11 @@ export default function App() {
           )}
           {tab === "novels" && (
             <NovelsScreen
-              tracks={novelsTracks}
+              cards={novelCards}
               currentTrack={currentTrack}
-              onSelect={onSelect}
-              onShowPlayer={onShowPlayer}
+              onSelectNovel={onSelectNovel}
               onAdd={onAdd}
               onDeleteOCRNovel={onDeleteOCRNovel}
-              onAddChapters={onAddChapters}
             />
           )}
           {tab === "mine" && (

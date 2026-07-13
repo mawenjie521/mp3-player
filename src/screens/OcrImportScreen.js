@@ -9,6 +9,7 @@ import {
   Image,
   Alert,
   ActivityIndicator,
+  SafeAreaView,
 } from "react-native";
 import { launchImageLibrary, launchCamera } from "react-native-image-picker";
 import DocumentPicker from "react-native-document-picker";
@@ -361,7 +362,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={confirmCancel} style={styles.backBtn}>
           <Text style={styles.backText}>‹ 返回</Text>
@@ -507,7 +508,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 

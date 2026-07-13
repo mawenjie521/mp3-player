@@ -126,22 +126,6 @@ export function expandOCRChapters(books) {
   );
 }
 
-export function expandEmptyBooks(books) {
-  return books
-    .filter((b) => b.isOCR && b.chapters.length === 0)
-    .map((b) => ({
-      id: `${b.id}__empty`,
-      title: b.title,
-      artist: "暂无章节，长按添加",
-      artwork: "",
-      isNovel: true,
-      isOCR: true,
-      isEmptyBook: true,
-      bookId: b.id,
-      url: "",
-    }));
-}
-
 export async function checkOCRFileExistence(books) {
   const results = await Promise.all(
     books.map(async (book) => {
