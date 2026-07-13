@@ -1,52 +1,68 @@
 import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
 import { COLORS } from "../data/constants";
-import TrackList from "../components/TrackList";
+import BookCover from "../components/BookCover";
 
-function NovelsScreen({ tracks, currentTrack, onSelect, onShowPlayer, onAdd, onDeleteOCRNovel, onAddChapters }) {
-  const handleSelect = (item) => {
-    if (item.isEmptyBook) return;
-    const playable = tracks.filter((t) => !t.isEmptyBook);
-    const queue = item.bookId ? playable.filter((t) => t.bookId === item.bookId) : playable;
-    onSelect(item, queue, "novels");
-  };
-
-  const handleLongPress = (item) => {
-    if (!item.isOCR || !item.bookId) return;
-    const actions = [];
-    if (onAddChapters) {
-      actions.push({ text: "添加章节", onPress: () => onAddChapters(item.bookId) });
-    }
-    if (onDeleteOCRNovel) {
-      actions.push({
+function NovelsScreen({ cards, currentTrack, onSelectNovel, onAdd, onDeleteOCRNovel }) {
+  const handleLongPress = (card) => {
+    if (!card.isOCR) return;
+    Alert.alert(card.title, null, [
+      {
         text: "删除",
         style: "destructive",
-        onPress: () => onDeleteOCRNovel(item.bookId),
-      });
-    }
-    if (actions.length === 0) return;
-    Alert.alert(item.title, null, [...actions, { text: "取消", style: "cancel" }]);
+        onPress: () => onDeleteOCRNovel(card.id),
+      },
+      { text: "取消", style: "cancel" },
+    ]);
+  };
+
+  const isCardPlaying = (card) =>
+    currentTrack && (currentTrack.bookId === card.id || currentTrack.id === card.id);
+
+  const renderItem = ({ item: card }) => {
+    const playing = isCardPlaying(card);
+    return (
+      <TouchableOpacity
+        style={styles.row}
+        onPress={() => onSelectNovel(card)}
+        onLongPress={() => handleLongPress(card)}
+        activeOpacity={0.6}
+      >
+        <BookCover uri={card.coverImage} title={card.title} style={styles.cover} />
+        <View style={styles.info}>
+          <Text style={[styles.title, playing && styles.titleActive]} numberOfLines={1}>
+            {card.title}
+          </Text>
+          <Text style={styles.meta}>{card.chapterCount} 章</Text>
+        </View>
+        {playing && <Text style={styles.activeIcon}>▶</Text>}
+      </TouchableOpacity>
+    );
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.title}>小说</Text>
-          <Text style={styles.subtitle}>共 {tracks.length} 首</Text>
+          <Text style={styles.headerTitle}>小说</Text>
+          <Text style={styles.subtitle}>共 {cards.length} 本</Text>
         </View>
         <TouchableOpacity onPress={onAdd} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+</Text>
         </TouchableOpacity>
       </View>
-      <TrackList
-        tracks={tracks}
-        currentTrack={currentTrack}
-        onSelect={handleSelect}
-        onShowPlayer={onShowPlayer}
-        onLongPress={handleLongPress}
-        emptyText="还没有有声书"
-      />
+      {cards.length === 0 ? (
+        <View style={styles.emptyState}>
+          <Text style={styles.emptyText}>还没有有声书</Text>
+        </View>
+      ) : (
+        <FlatList
+          data={cards}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+        />
+      )}
     </View>
   );
 }
@@ -63,7 +79,7 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 12,
   },
-  title: {
+  headerTitle: {
     color: COLORS.primaryText,
     fontSize: 22,
     fontWeight: "700",
@@ -87,6 +103,54 @@ const styles = StyleSheet.create({
     fontSize: 22,
     fontWeight: "400",
     marginTop: -3,
+  },
+  row: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+  },
+  cover: {
+    width: 48,
+    height: 48,
+    borderRadius: 6,
+    backgroundColor: "#333",
+  },
+  info: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  title: {
+    color: COLORS.primaryText,
+    fontSize: 16,
+  },
+  titleActive: {
+    color: COLORS.accent,
+  },
+  meta: {
+    color: COLORS.secondaryText,
+    fontSize: 13,
+    marginTop: 2,
+  },
+  activeIcon: {
+    color: COLORS.accent,
+    fontSize: 16,
+    marginLeft: 8,
+  },
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: "#ffffff10",
+    marginLeft: 84,
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 80,
+  },
+  emptyText: {
+    color: COLORS.secondaryText,
+    fontSize: 14,
   },
 });
 
