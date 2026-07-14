@@ -636,8 +636,6 @@ export default function App() {
   } else if (view === "settings") {
     content = (
       <SettingsScreen
-        currentTrack={currentTrack}
-        onShowPlayer={onShowPlayer}
         onBack={onBackFromSettings}
         onClearCache={onClearCache}
       />
