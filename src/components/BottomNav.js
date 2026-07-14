@@ -1,39 +1,44 @@
 import React from "react";
-import { View, TouchableOpacity, Text, StyleSheet } from "react-native";
+import { View, TouchableOpacity, Text, StyleSheet, SafeAreaView } from "react-native";
 import { COLORS, NAV_TABS } from "../data/constants";
 
-function BottomNav({ activeTab, onChange }) {
+function BottomNav({ activeTab, onChange, accentColor = COLORS.accent }) {
   return (
-    <View style={styles.container}>
-      {NAV_TABS.map((tab) => {
-        const isActive = tab.key === activeTab;
-        return (
-          <TouchableOpacity
-            key={tab.key}
-            style={styles.tab}
-            onPress={() => onChange(tab.key)}
-            activeOpacity={0.6}
-          >
-            <Text style={[styles.icon, isActive && styles.iconActive]}>
-              {tab.icon}
-            </Text>
-            <Text style={[styles.label, isActive && styles.labelActive]}>
-              {tab.label}
-            </Text>
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+    <SafeAreaView style={styles.container} edges={["bottom"]}>
+      <View style={styles.row}>
+        {NAV_TABS.map((tab) => {
+          const isActive = tab.key === activeTab;
+          const tabAccent = tab.key === "novels" ? COLORS.accentNovel : accentColor;
+          return (
+            <TouchableOpacity
+              key={tab.key}
+              style={styles.tab}
+              onPress={() => onChange(tab.key)}
+              activeOpacity={0.6}
+            >
+              <Text style={[styles.icon, { color: isActive ? tabAccent : COLORS.tertiaryText }]}>
+                {tab.icon}
+              </Text>
+              <Text style={[styles.label, { color: isActive ? tabAccent : COLORS.tertiaryText, fontWeight: isActive ? "600" : "400" }]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
-    flexDirection: "row",
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: "#ffffff20",
-    paddingVertical: 8,
+    borderTopColor: COLORS.separator,
+  },
+  row: {
+    flexDirection: "row",
+    paddingVertical: 6,
   },
   tab: {
     flex: 1,
@@ -42,19 +47,10 @@ const styles = StyleSheet.create({
   },
   icon: {
     fontSize: 22,
-    color: COLORS.secondaryText,
-  },
-  iconActive: {
-    color: COLORS.accent,
   },
   label: {
     fontSize: 11,
-    color: COLORS.secondaryText,
     marginTop: 2,
-  },
-  labelActive: {
-    color: COLORS.accent,
-    fontWeight: "600",
   },
 });
 

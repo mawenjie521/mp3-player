@@ -414,7 +414,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
 
         {step === "ocr-processing" && (
           <View style={styles.centerBlock}>
-            <ActivityIndicator size="large" color={COLORS.accent} />
+            <ActivityIndicator size="large" color={COLORS.accentNovel} />
             <Text style={styles.progressText}>
               导入中 {progress.current}/{progress.total}...
             </Text>
@@ -468,7 +468,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
 
         {step === "tts-generating" && (
           <View style={styles.centerBlock}>
-            <ActivityIndicator size="large" color={COLORS.accent} />
+            <ActivityIndicator size="large" color={COLORS.accentNovel} />
             <Text style={styles.progressText}>
               合成语音 {progress.current}/{progress.total}...
             </Text>
@@ -530,7 +530,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   backText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 16,
   },
   title: {
@@ -563,12 +563,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 24,
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.accentNovel,
     flex: 1,
     alignItems: "center",
   },
   outlineBtnText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 15,
     fontWeight: "600",
   },
@@ -588,7 +588,7 @@ const styles = StyleSheet.create({
     width: 80,
     height: 80,
     borderRadius: 8,
-    backgroundColor: "#333",
+    backgroundColor: COLORS.separator,
   },
   thumbRemove: {
     position: "absolute",
@@ -597,7 +597,7 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.accentNovel,
     alignItems: "center",
     justifyContent: "center",
   },
@@ -607,7 +607,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   thumbPlaceholder: {
-    backgroundColor: "#333",
+    backgroundColor: COLORS.separator,
     alignItems: "center",
     justifyContent: "center",
     paddingHorizontal: 4,
@@ -640,7 +640,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingVertical: 14,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#ffffff10",
+    borderBottomColor: COLORS.separator,
   },
   chapterInfo: {
     flex: 1,
@@ -650,10 +650,10 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.accentNovel,
   },
   chapterDeleteText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 13,
   },
   chapterTitle: {
@@ -670,7 +670,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryText,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#ffffff20",
+    borderColor: COLORS.separator,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -681,7 +681,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
   },
   primaryBtn: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.accentNovel,
     paddingVertical: 14,
     borderRadius: 24,
     alignItems: "center",

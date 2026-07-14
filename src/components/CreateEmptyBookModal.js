@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Modal } from "react-native";
-import { COLORS } from "../data/constants";
+import { COLORS, TYPO } from "../data/constants";
 
 function CreateEmptyBookModal({ visible, onCreate, onCancel }) {
   const [title, setTitle] = useState("");
@@ -20,7 +20,7 @@ function CreateEmptyBookModal({ visible, onCreate, onCancel }) {
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={styles.card}>
-          <Text style={styles.title}>创建空小说</Text>
+          <Text style={[styles.title, TYPO.titleMedium]}>创建空小说</Text>
           <TextInput
             style={styles.input}
             value={title}
@@ -56,14 +56,12 @@ const styles = StyleSheet.create({
   },
   card: {
     width: "80%",
-    backgroundColor: COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 20,
   },
   title: {
     color: COLORS.primaryText,
-    fontSize: 18,
-    fontWeight: "600",
     marginBottom: 16,
     textAlign: "center",
   },
@@ -71,7 +69,7 @@ const styles = StyleSheet.create({
     color: COLORS.primaryText,
     fontSize: 16,
     borderWidth: 1,
-    borderColor: "#ffffff20",
+    borderColor: COLORS.separator,
     borderRadius: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -86,17 +84,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.accentNovel,
     flex: 1,
     alignItems: "center",
   },
   outlineBtnText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 15,
     fontWeight: "600",
   },
   primaryBtn: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.accentNovel,
     paddingVertical: 10,
     borderRadius: 20,
     flex: 1,
@@ -106,7 +104,7 @@ const styles = StyleSheet.create({
     opacity: 0.4,
   },
   primaryBtnText: {
-    color: COLORS.primaryText,
+    color: COLORS.surface,
     fontSize: 15,
     fontWeight: "600",
   },

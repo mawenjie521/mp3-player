@@ -1,15 +1,15 @@
 import React, { useMemo } from "react";
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
-import { COLORS } from "../data/constants";
+import { COLORS, TYPO } from "../data/constants";
 import { filterTracks } from "../data/filterTracks";
 import TrackList from "../components/TrackList";
 import BookCover from "../components/BookCover";
 
 const MINE_TABS = [
-  { key: "favorites", label: "收藏" },
-  { key: "recent", label: "最近播放" },
-  { key: "imported", label: "导入音乐" },
-  { key: "ocr", label: "OCR 小说" },
+  { key: "favorites", label: "收藏", accent: "accent" },
+  { key: "recent", label: "最近播放", accent: "accent" },
+  { key: "imported", label: "导入音乐", accent: "accent" },
+  { key: "ocr", label: "OCR 小说", accent: "accentNovel" },
 ];
 
 function MineScreen({
@@ -30,6 +30,9 @@ function MineScreen({
     () => filterTracks(mineSubTab, allTracks, favorites, recent),
     [mineSubTab, allTracks, favorites, recent]
   );
+
+  const isOcrTab = mineSubTab === "ocr";
+  const activeAccent = isOcrTab ? COLORS.accentNovel : COLORS.accent;
 
   const emptyText = useMemo(() => {
     if (mineSubTab === "favorites") return "还没有收藏的歌曲";
@@ -60,7 +63,7 @@ function MineScreen({
       onLongPress={() => handleBookLongPress(item)}
       activeOpacity={0.6}
     >
-      <BookCover uri={item.coverImage} title={item.title} style={styles.bookCover} />
+      <BookCover uri={item.coverImage} title={item.title} style={styles.bookCover} accentColor={COLORS.accentNovel} />
       <View style={styles.bookInfo}>
         <Text style={styles.bookTitle} numberOfLines={1}>{item.title}</Text>
         <Text style={styles.bookMeta}>{item.chapters.length} 章</Text>
@@ -74,24 +77,28 @@ function MineScreen({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>我的</Text>
+        <Text style={[styles.title, TYPO.titleLarge]}>我的</Text>
         <TouchableOpacity onPress={onOpenSettings} style={styles.settingsBtn}>
-          <Text style={styles.settingsBtnText}>设置</Text>
+          <Text style={styles.settingsIcon}>⚙</Text>
         </TouchableOpacity>
       </View>
       <View style={styles.tabBar}>
         {MINE_TABS.map((tab) => {
           const isActive = tab.key === mineSubTab;
+          const tabAccent = tab.accent === "accentNovel" ? COLORS.accentNovel : COLORS.accent;
           return (
             <TouchableOpacity
               key={tab.key}
               style={styles.tab}
               onPress={() => onSubTabChange(tab.key)}
             >
-              <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+              <Text style={[
+                styles.tabText,
+                { color: isActive ? tabAccent : COLORS.secondaryText, fontWeight: isActive ? "600" : "400" },
+              ]}>
                 {tab.label}
               </Text>
-              {isActive && <View style={styles.tabUnderline} />}
+              {isActive && <View style={[styles.tabUnderline, { backgroundColor: tabAccent }]} />}
             </TouchableOpacity>
           );
         })}
@@ -103,7 +110,7 @@ function MineScreen({
           </TouchableOpacity>
         </View>
       )}
-      {mineSubTab === "ocr" ? (
+      {isOcrTab ? (
         ocrNovels.length === 0 ? (
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>{emptyText}</Text>
@@ -122,6 +129,7 @@ function MineScreen({
           currentTrack={currentTrack}
           onSelect={(item) => onSelect(item, filtered, mineSubTab)}
           emptyText={emptyText}
+          accentColor={activeAccent}
         />
       )}
     </View>
@@ -142,23 +150,20 @@ const styles = StyleSheet.create({
   },
   title: {
     color: COLORS.primaryText,
-    fontSize: 22,
-    fontWeight: "700",
   },
   settingsBtn: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  settingsBtnText: {
-    color: COLORS.accent,
-    fontSize: 13,
+  settingsIcon: {
+    color: COLORS.primaryText,
+    fontSize: 22,
   },
   tabBar: {
     flexDirection: "row",
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   tab: {
@@ -167,12 +172,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   tabText: {
-    color: COLORS.secondaryText,
     fontSize: 14,
-  },
-  tabTextActive: {
-    color: COLORS.accent,
-    fontWeight: "600",
   },
   tabUnderline: {
     position: "absolute",
@@ -180,36 +180,35 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     height: 2,
-    backgroundColor: COLORS.accent,
+    borderRadius: 1,
   },
   importBar: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingBottom: 8,
   },
   importButton: {
     paddingVertical: 10,
     paddingHorizontal: 16,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: COLORS.accent,
+    backgroundColor: COLORS.accent,
     alignSelf: "flex-start",
   },
   importButtonText: {
-    color: COLORS.accent,
+    color: COLORS.surface,
     fontSize: 14,
     fontWeight: "600",
   },
   bookRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
+    paddingHorizontal: 16,
     paddingVertical: 12,
   },
   bookCover: {
     width: 48,
     height: 48,
     borderRadius: 6,
-    backgroundColor: "#333",
+    backgroundColor: COLORS.separator,
   },
   bookInfo: {
     flex: 1,
@@ -217,11 +216,12 @@ const styles = StyleSheet.create({
   },
   bookTitle: {
     color: COLORS.primaryText,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: "600",
   },
   bookMeta: {
     color: COLORS.secondaryText,
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
   deleteBtn: {
@@ -229,16 +229,16 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.accentNovel,
   },
   deleteBtnText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 13,
   },
   listSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#ffffff10",
-    marginLeft: 84,
+    backgroundColor: COLORS.separator,
+    marginLeft: 76,
   },
   emptyState: {
     flex: 1,
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: COLORS.secondaryText,
-    fontSize: 14,
+    fontSize: 16,
   },
 });
 

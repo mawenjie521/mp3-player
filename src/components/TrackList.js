@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, FlatList } from "react-native
 import { COLORS } from "../data/constants";
 import BookCover from "./BookCover";
 
-function TrackList({ tracks, currentTrack, onSelect, onLongPress, emptyText = "暂无内容" }) {
+function TrackList({ tracks, currentTrack, onSelect, onLongPress, emptyText = "暂无内容", accentColor = COLORS.accent }) {
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -23,15 +23,15 @@ function TrackList({ tracks, currentTrack, onSelect, onLongPress, emptyText = "�
         onLongPress={() => onLongPress && onLongPress(item)}
         activeOpacity={0.6}
       >
-        <BookCover uri={item.artwork} title={item.title} style={styles.listThumb} />
+        <BookCover uri={item.artwork} title={item.title} style={styles.listThumb} accentColor={accentColor} />
         <View style={styles.listInfo}>
           <View style={styles.listTitleRow}>
-            <Text style={[styles.listTitle, isActive && styles.listTitleActive]} numberOfLines={1}>
+            <Text style={[styles.listTitle, { color: isActive ? accentColor : COLORS.primaryText }]} numberOfLines={1}>
               {item.title}
             </Text>
             {item.isOCR && (
               <View style={styles.ocrBadge}>
-                <Text style={styles.ocrBadgeText}>OCR</Text>
+                <Text style={[styles.ocrBadgeText, { color: accentColor }]}>OCR</Text>
               </View>
             )}
           </View>
@@ -39,7 +39,7 @@ function TrackList({ tracks, currentTrack, onSelect, onLongPress, emptyText = "�
             {item.artist}
           </Text>
         </View>
-        {isActive && <Text style={styles.listActiveIcon}>▶</Text>}
+        {isActive && <Text style={[styles.listActiveIcon, { color: accentColor }]}>▍▍▍</Text>}
       </TouchableOpacity>
     );
   };
@@ -73,25 +73,22 @@ const styles = StyleSheet.create({
   listRow: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   listThumb: {
     width: 48,
     height: 48,
-    borderRadius: 6,
-    backgroundColor: "#333",
+    borderRadius: 8,
+    backgroundColor: COLORS.separator,
   },
   listInfo: {
     flex: 1,
     marginLeft: 12,
   },
   listTitle: {
-    color: COLORS.primaryText,
-    fontSize: 16,
-  },
-  listTitleActive: {
-    color: COLORS.accent,
+    fontSize: 15,
+    fontWeight: "600",
   },
   listTitleRow: {
     flexDirection: "row",
@@ -99,30 +96,28 @@ const styles = StyleSheet.create({
   },
   ocrBadge: {
     marginLeft: 6,
-    paddingHorizontal: 6,
+    paddingHorizontal: 4,
     paddingVertical: 2,
-    borderRadius: 4,
-    backgroundColor: COLORS.accent,
+    borderRadius: 3,
+    backgroundColor: COLORS.separator,
   },
   ocrBadgeText: {
-    color: COLORS.primaryText,
-    fontSize: 9,
-    fontWeight: "700",
+    fontSize: 10,
+    fontWeight: "600",
   },
   listArtist: {
     color: COLORS.secondaryText,
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
   },
   listActiveIcon: {
-    color: COLORS.accent,
-    fontSize: 16,
+    fontSize: 14,
     marginLeft: 8,
   },
   listSeparator: {
     height: StyleSheet.hairlineWidth,
-    backgroundColor: "#ffffff10",
-    marginLeft: 84,
+    backgroundColor: COLORS.separator,
+    marginLeft: 76,
   },
   emptyState: {
     flex: 1,

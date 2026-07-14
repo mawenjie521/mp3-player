@@ -1,9 +1,8 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from "react-native";
-import { COLORS, APP_VERSION } from "../data/constants";
-import NowPlayingBar from "../components/NowPlayingBar";
+import { COLORS, TYPO, APP_VERSION } from "../data/constants";
 
-function SettingsScreen({ currentTrack, onShowPlayer, onBack, onClearCache }) {
+function SettingsScreen({ onBack, onClearCache }) {
   const handleClearCache = () => {
     Alert.alert(
       "清除缓存",
@@ -19,34 +18,25 @@ function SettingsScreen({ currentTrack, onShowPlayer, onBack, onClearCache }) {
     );
   };
 
-  const handleFeedback = () => {
-    Alert.alert("反馈/评分", "感谢支持，评分功能即将上线");
-  };
-
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={onBack} style={styles.backBtn}>
-          <Text style={styles.backText}>‹ 返回</Text>
+        <TouchableOpacity onPress={onBack} style={styles.headerBtn}>
+          <Text style={styles.headerIcon}>‹</Text>
         </TouchableOpacity>
-        <Text style={styles.title}>设置</Text>
-        <View style={styles.headerSpacer} />
+        <Text style={[styles.title, TYPO.titleMedium]}>设置</Text>
+        <View style={styles.headerBtn} />
       </View>
-      <ScrollView style={{ flex: 1 }}>
-        <TouchableOpacity style={styles.row} onPress={() => {}}>
-          <Text style={styles.rowText}>关于</Text>
-          <Text style={styles.rowValue}>v{APP_VERSION}</Text>
-        </TouchableOpacity>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list}>
         <TouchableOpacity style={styles.row} onPress={handleClearCache}>
           <Text style={styles.rowText}>清除缓存</Text>
           <Text style={styles.rowArrow}>›</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.row} onPress={handleFeedback}>
-          <Text style={styles.rowText}>反馈/评分</Text>
-          <Text style={styles.rowArrow}>›</Text>
-        </TouchableOpacity>
+        <View style={styles.row}>
+          <Text style={styles.rowText}>版本</Text>
+          <Text style={styles.rowValue}>v{APP_VERSION}</Text>
+        </View>
       </ScrollView>
-      <NowPlayingBar currentTrack={currentTrack} onPress={onShowPlayer} />
     </SafeAreaView>
   );
 }
@@ -59,46 +49,51 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingTop: 16,
+    paddingHorizontal: 8,
+    paddingTop: 8,
     paddingBottom: 12,
   },
-  backBtn: {
-    paddingVertical: 6,
-    paddingRight: 12,
+  headerBtn: {
+    width: 40,
+    height: 40,
+    alignItems: "center",
+    justifyContent: "center",
   },
-  backText: {
-    color: COLORS.accent,
-    fontSize: 16,
+  headerIcon: {
+    color: COLORS.primaryText,
+    fontSize: 24,
   },
   title: {
+    flex: 1,
     color: COLORS.primaryText,
-    fontSize: 17,
-    fontWeight: "600",
+    textAlign: "center",
+    marginHorizontal: 8,
   },
-  headerSpacer: {
-    width: 60,
+  list: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
   row: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
+    backgroundColor: COLORS.surface,
+    paddingHorizontal: 16,
     paddingVertical: 16,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#ffffff10",
+    borderRadius: 12,
+    marginBottom: 8,
   },
   rowText: {
     color: COLORS.primaryText,
-    fontSize: 16,
+    fontSize: 15,
+    fontWeight: "600",
   },
   rowValue: {
     color: COLORS.secondaryText,
     fontSize: 14,
   },
   rowArrow: {
-    color: COLORS.secondaryText,
+    color: COLORS.tertiaryText,
     fontSize: 18,
   },
 });

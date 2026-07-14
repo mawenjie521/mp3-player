@@ -2,14 +2,14 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet } from "react-native";
 import { COLORS } from "../data/constants";
 
-function Controls({ isPlaying, onPrev, onNext, onTogglePlay, repeatMode, onToggleRepeat }) {
-  const accent = (on) => (on ? COLORS.accent : COLORS.secondaryText);
+function Controls({ isPlaying, onPrev, onNext, onTogglePlay, repeatMode, onToggleRepeat, accentColor = COLORS.accent }) {
   const repeatIcon = repeatMode === "track" ? "🔂" : "🔁";
+  const repeatColor = repeatMode !== "off" ? accentColor : COLORS.playerTextDim;
 
   return (
     <View style={styles.controls}>
       <TouchableOpacity onPress={onToggleRepeat} style={styles.sideButton}>
-        <Text style={[styles.sideIcon, { color: accent(repeatMode !== "off") }]}>{repeatIcon}</Text>
+        <Text style={[styles.sideIcon, { color: repeatColor }]}>{repeatIcon}</Text>
       </TouchableOpacity>
 
       <TouchableOpacity onPress={onPrev} style={styles.controlButton}>
@@ -23,6 +23,8 @@ function Controls({ isPlaying, onPrev, onNext, onTogglePlay, repeatMode, onToggl
       <TouchableOpacity onPress={onNext} style={styles.controlButton}>
         <Text style={styles.controlIcon}>⏭</Text>
       </TouchableOpacity>
+
+      <View style={styles.sideButton} />
     </View>
   );
 }
@@ -32,8 +34,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 16,
-    marginBottom: 16,
+    paddingHorizontal: 24,
+    marginBottom: 24,
   },
   sideButton: {
     padding: 12,
@@ -48,20 +50,20 @@ const styles = StyleSheet.create({
   },
   controlIcon: {
     fontSize: 30,
-    color: COLORS.primaryText,
+    color: COLORS.playerText,
   },
   playButton: {
     width: 64,
     height: 64,
     borderRadius: 32,
     borderWidth: 2,
-    borderColor: COLORS.primaryText,
+    borderColor: COLORS.playerText,
     alignItems: "center",
     justifyContent: "center",
   },
   playIcon: {
     fontSize: 28,
-    color: COLORS.primaryText,
+    color: COLORS.playerText,
     marginTop: -2,
   },
 });

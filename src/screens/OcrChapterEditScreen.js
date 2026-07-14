@@ -57,7 +57,7 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   backText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 16,
   },
   title: {
@@ -80,12 +80,12 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlignVertical: "top",
     padding: 12,
-    backgroundColor: "#222",
+    backgroundColor: COLORS.background,
     borderRadius: 8,
     marginBottom: 16,
   },
   saveBtn: {
-    backgroundColor: COLORS.accent,
+    backgroundColor: COLORS.accentNovel,
     paddingVertical: 14,
     borderRadius: 24,
     alignItems: "center",

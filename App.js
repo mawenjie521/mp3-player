@@ -26,7 +26,8 @@ import { loadJSON, saveJSON, removeKey } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
 import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence, computeBookDir, getBookDir } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
-import PlayerScreen from "./src/screens/PlayerScreen";
+import SongsPlayerScreen from "./src/screens/SongsPlayerScreen";
+import NovelsPlayerScreen from "./src/screens/NovelsPlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
 import NovelsScreen from "./src/screens/NovelsScreen";
 import MineScreen from "./src/screens/MineScreen";
@@ -569,6 +570,10 @@ export default function App() {
   const selectedCard = view === "novel-detail"
     ? novelCards.find((c) => c.id === selectedNovelId)
     : null;
+  const isNovelContext = view === "player"
+    ? (currentTrack?.isNovel || currentTrack?.isOCR)
+    : (tab === "novels" || (tab === "mine" && mineSubTab === "ocr"));
+  const activeAccent = isNovelContext ? COLORS.accentNovel : COLORS.accent;
   let content;
   if (initError) {
     content = (
@@ -587,8 +592,10 @@ export default function App() {
       </View>
     );
   } else if (view === "player") {
+    const isNovel = currentTrack?.isNovel || currentTrack?.isOCR;
+    const Player = isNovel ? NovelsPlayerScreen : SongsPlayerScreen;
     content = (
-      <PlayerScreen
+      <Player
         currentTrack={currentTrack}
         isPlaying={isPlaying}
         position={position}
@@ -629,8 +636,6 @@ export default function App() {
   } else if (view === "settings") {
     content = (
       <SettingsScreen
-        currentTrack={currentTrack}
-        onShowPlayer={onShowPlayer}
         onBack={onBackFromSettings}
         onClearCache={onClearCache}
       />
@@ -638,7 +643,6 @@ export default function App() {
   } else {
     content = (
       <SafeAreaView style={styles.container}>
-        <View style={styles.glowTop} />
         <View style={{ flex: 1 }}>
           {tab === "songs" && (
             <SongsScreen
@@ -672,13 +676,20 @@ export default function App() {
             />
           )}
         </View>
-        <NowPlayingBar currentTrack={currentTrack} onPress={onShowPlayer} />
+        <NowPlayingBar
+          currentTrack={currentTrack}
+          position={position}
+          duration={duration}
+          isPlaying={isPlaying}
+          onPress={onShowPlayer}
+          accentColor={activeAccent}
+        />
         <CreateEmptyBookModal
           visible={showCreateEmptyBook}
           onCreate={onCreateEmptyBook}
           onCancel={() => setShowCreateEmptyBook(false)}
         />
-        <BottomNav activeTab={tab} onChange={setTab} />
+        <BottomNav activeTab={tab} onChange={setTab} accentColor={activeAccent} />
       </SafeAreaView>
     );
   }
@@ -690,15 +701,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  glowTop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
-    backgroundColor: COLORS.accent,
-    opacity: 0.05,
   },
   loading: {
     color: COLORS.primaryText,

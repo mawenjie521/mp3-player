@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { COLORS } from "../data/constants";
+import { COLORS, TYPO } from "../data/constants";
 import { playlist } from "../data/playlist";
 import TrackList from "../components/TrackList";
 
@@ -8,8 +8,8 @@ function SongsScreen({ currentTrack, onSelect }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>歌曲</Text>
-        <Text style={styles.subtitle}>共 {playlist.length} 首</Text>
+        <Text style={[styles.title, TYPO.titleLarge]}>歌曲</Text>
+        <Text style={[styles.subtitle, TYPO.caption]}>{playlist.length} 首</Text>
       </View>
       <TrackList
         tracks={playlist}
@@ -30,14 +30,8 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 12,
   },
-  title: {
-    color: COLORS.primaryText,
-    fontSize: 22,
-    fontWeight: "700",
-  },
   subtitle: {
     color: COLORS.secondaryText,
-    fontSize: 13,
     marginTop: 4,
   },
 });
