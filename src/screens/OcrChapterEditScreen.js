@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, KeyboardAvoidingView, Platform, SafeAreaView } from "react-native";
 import { COLORS } from "../data/constants";
 
-function OcrChapterEditScreen({ chapterTitle, initialText, onSave, onBack }) {
+function OcrChapterEditScreen({ chapterTitle, initialText, onSave, onBack, onSplitHere }) {
   const [text, setText] = useState(initialText);
+  const [selection, setSelection] = useState({ start: 0, end: 0 });
 
   return (
     <SafeAreaView style={styles.container}>
@@ -22,18 +23,29 @@ function OcrChapterEditScreen({ chapterTitle, initialText, onSave, onBack }) {
           style={styles.editor}
           value={text}
           onChangeText={setText}
+          onSelectionChange={(e) => setSelection(e.nativeEvent.selection)}
           multiline
           textAlignVertical="top"
           autoFocus
           placeholder="（识别为空，请手动输入）"
           placeholderTextColor={COLORS.secondaryText}
         />
-        <TouchableOpacity
-          onPress={() => onSave(text)}
-          style={styles.saveBtn}
-        >
-          <Text style={styles.saveBtnText}>保存</Text>
-        </TouchableOpacity>
+        <View style={styles.buttonRow}>
+          <TouchableOpacity
+            onPress={() => onSave(text)}
+            style={styles.saveBtn}
+          >
+            <Text style={styles.saveBtnText}>保存</Text>
+          </TouchableOpacity>
+          {onSplitHere && (
+            <TouchableOpacity
+              onPress={() => onSplitHere(text, selection.start)}
+              style={[styles.saveBtn, styles.splitBtn]}
+            >
+              <Text style={styles.saveBtnText}>在光标处拆分</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -84,11 +96,19 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 16,
   },
+  buttonRow: {
+    flexDirection: "row",
+  },
   saveBtn: {
+    flex: 1,
     backgroundColor: COLORS.accentNovel,
     paddingVertical: 14,
     borderRadius: 24,
     alignItems: "center",
+  },
+  splitBtn: {
+    marginLeft: 12,
+    backgroundColor: COLORS.secondaryText,
   },
   saveBtnText: {
     color: COLORS.primaryText,
