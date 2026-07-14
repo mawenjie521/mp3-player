@@ -26,7 +26,8 @@ import { loadJSON, saveJSON, removeKey } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
 import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence, computeBookDir, getBookDir } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
-import PlayerScreen from "./src/screens/PlayerScreen";
+import SongsPlayerScreen from "./src/screens/SongsPlayerScreen";
+import NovelsPlayerScreen from "./src/screens/NovelsPlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
 import NovelsScreen from "./src/screens/NovelsScreen";
 import MineScreen from "./src/screens/MineScreen";
@@ -591,8 +592,10 @@ export default function App() {
       </View>
     );
   } else if (view === "player") {
+    const isNovel = currentTrack?.isNovel || currentTrack?.isOCR;
+    const Player = isNovel ? NovelsPlayerScreen : SongsPlayerScreen;
     content = (
-      <PlayerScreen
+      <Player
         currentTrack={currentTrack}
         isPlaying={isPlaying}
         position={position}

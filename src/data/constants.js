@@ -3,10 +3,6 @@ import { RepeatMode } from "react-native-track-player";
 
 export const SCREEN_WIDTH = Dimensions.get("window").width;
 
-// Kept until Vinyl.js is deleted in Task 9.
-export const VINYL_SIZE = Math.min(340, SCREEN_WIDTH - 48);
-export const ART_SIZE = Math.min(220, VINYL_SIZE - 120);
-
 export const PLAYER_COVER_SIZE_SONG = 280;
 export const PLAYER_COVER_SIZE_NOVEL = 240;
 
