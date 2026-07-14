@@ -30,6 +30,11 @@ function categorizeFile(name) {
   return null;
 }
 
+// iOS DocumentPicker URIs are URL-encoded; RNFS only strips file://, not %XX.
+function toFilePath(uri) {
+  return uri.startsWith("file://") ? decodeURIComponent(uri.slice(7)) : uri;
+}
+
 function naturalCompare(a, b) {
   const ax = [], bx = [];
   a.name.replace(/(\d+)|(\D+)/g, (_, $1, $2) => { ax.push([$1 || Infinity, $2 || ""]); });
@@ -68,7 +73,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     const filename = isCover ? `cover.${ext}` : `source-${startIndex + index}.${ext}`;
     const dest = `${bookDir}/${filename}`;
     await RNFS.mkdir(bookDir);
-    await RNFS.copyFile(uri, dest);
+    await RNFS.copyFile(toFilePath(uri), dest);
     return `file://${dest}`;
   };
 
@@ -106,7 +111,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
   const pickFolder = async () => {
     try {
       const res = await DocumentPicker.pickDirectory();
-      const items = await RNFS.readDir(res.uri);
+      const items = await RNFS.readDir(toFilePath(res.uri));
       const files = items
         .filter((it) => !it.isDirectory())
         .map((it) => ({ uri: it.uri, name: it.name, type: categorizeFile(it.name) }))
@@ -173,7 +178,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         } else if (file.type === "text") {
           let text = "";
           try {
-            text = await RNFS.readFile(file.uri, "utf8");
+            text = await RNFS.readFile(toFilePath(file.uri), "utf8");
           } catch {
             // read failed, text stays empty
           }
@@ -186,7 +191,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         } else if (file.type === "audio") {
           try {
             const dest = `${bookDir}/${file.name}`;
-            await RNFS.copyFile(file.uri, dest);
+            await RNFS.copyFile(toFilePath(file.uri), dest);
             newChapters.push({
               id, title,
               text: "",

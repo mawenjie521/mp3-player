@@ -52,7 +52,11 @@ function TxtImportScreen({ onComplete, onCancel }) {
   const parseFile = async (uri, name) => {
     setStep("parsing");
     try {
-      const text = await RNFS.readFile(uri, "utf8");
+      // iOS DocumentPicker URIs are URL-encoded; RNFS only strips file://, not %XX.
+      const filePath = uri.startsWith("file://")
+        ? decodeURIComponent(uri.slice(7))
+        : uri;
+      const text = await RNFS.readFile(filePath, "utf8");
       if (looksLikeGbkDecodedAsUtf8(text)) {
         Alert.alert(
           "编码不支持",
