@@ -26,3 +26,5 @@ export const NAV_TABS = [
   { key: "novels", label: "小说", icon: "▤" },
   { key: "mine", label: "我的", icon: "☻" },
 ];
+
+export const APP_VERSION = "1.0.0";

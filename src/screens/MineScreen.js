@@ -16,7 +16,6 @@ function MineScreen({
   allTracks,
   currentTrack,
   onSelect,
-  onShowPlayer,
   favorites,
   recent,
   onImport,
@@ -25,6 +24,7 @@ function MineScreen({
   ocrNovels,
   onDeleteOCRNovel,
   onAddChapters,
+  onOpenSettings,
 }) {
   const filtered = useMemo(
     () => filterTracks(mineSubTab, allTracks, favorites, recent),
@@ -75,6 +75,9 @@ function MineScreen({
     <View style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>我的</Text>
+        <TouchableOpacity onPress={onOpenSettings} style={styles.settingsBtn}>
+          <Text style={styles.settingsBtnText}>设置</Text>
+        </TouchableOpacity>
       </View>
       <View style={styles.tabBar}>
         {MINE_TABS.map((tab) => {
@@ -118,7 +121,6 @@ function MineScreen({
           tracks={filtered}
           currentTrack={currentTrack}
           onSelect={(item) => onSelect(item, filtered, mineSubTab)}
-          onShowPlayer={onShowPlayer}
           emptyText={emptyText}
         />
       )}
@@ -131,6 +133,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 24,
     paddingTop: 24,
     paddingBottom: 12,
@@ -139,6 +144,17 @@ const styles = StyleSheet.create({
     color: COLORS.primaryText,
     fontSize: 22,
     fontWeight: "700",
+  },
+  settingsBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: COLORS.accent,
+  },
+  settingsBtnText: {
+    color: COLORS.accent,
+    fontSize: 13,
   },
   tabBar: {
     flexDirection: "row",

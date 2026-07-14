@@ -22,9 +22,9 @@ import TrackPlayer, {
 import { playlist } from "./src/data/playlist";
 import { novels } from "./src/data/novels";
 import { filterTracks } from "./src/data/filterTracks";
-import { loadJSON, saveJSON } from "./src/data/storage";
+import { loadJSON, saveJSON, removeKey } from "./src/data/storage";
 import { loadImported, pickAndCopyTrack, persistImported } from "./src/data/importedTracks";
-import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence, computeBookDir } from "./src/data/ocrNovels";
+import { loadOCRNovels, saveOCRNovel, deleteOCRNovel, appendOCRChapters, expandOCRChapters, checkOCRFileExistence, computeBookDir, getBookDir } from "./src/data/ocrNovels";
 import { COLORS, REPEAT_MAP } from "./src/data/constants";
 import PlayerScreen from "./src/screens/PlayerScreen";
 import SongsScreen from "./src/screens/SongsScreen";
@@ -32,7 +32,9 @@ import NovelsScreen from "./src/screens/NovelsScreen";
 import MineScreen from "./src/screens/MineScreen";
 import OcrImportScreen from "./src/screens/OcrImportScreen";
 import NovelDetailScreen from "./src/screens/NovelDetailScreen";
+import SettingsScreen from "./src/screens/SettingsScreen";
 import BottomNav from "./src/components/BottomNav";
+import NowPlayingBar from "./src/components/NowPlayingBar";
 import ErrorBoundary from "./src/error/ErrorBoundary";
 import RNFS from "react-native-fs";
 import CreateEmptyBookModal from "./src/components/CreateEmptyBookModal";
@@ -125,7 +127,7 @@ export default function App() {
 
   const playbackRef = useRef(null);
   useEffect(() => {
-    playbackRef.current = { currentTrack, tab, scope, repeatMode };
+    playbackRef.current = { currentTrack, tab, scope, repeatMode, isPlaying };
   });
 
   useEffect(() => {
@@ -150,13 +152,34 @@ export default function App() {
           tab,
           scope,
           repeatMode,
+          isPlaying,
         });
       } catch {
         // 静默失败 - 存储不可用不应阻断 UI
       }
     })();
     return () => { cancelled = true; };
-  }, [currentTrack?.id, scope, repeatMode]);
+  }, [currentTrack?.id, scope, repeatMode, isPlaying]);
+
+  useEffect(() => {
+    if (!isPlaying || !currentTrack) return;
+    const interval = setInterval(async () => {
+      try {
+        const { position } = await TrackPlayer.getProgress();
+        saveJSON("@mp3player:playback", {
+          trackId: currentTrack.id,
+          position: position || 0,
+          tab,
+          scope,
+          repeatMode,
+          isPlaying: true,
+        });
+      } catch {
+        // 静默失败
+      }
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [isPlaying, currentTrack?.id, tab, scope, repeatMode]);
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", async (state) => {
@@ -171,6 +194,7 @@ export default function App() {
           tab: snap.tab,
           scope: snap.scope,
           repeatMode: snap.repeatMode,
+          isPlaying: snap.isPlaying,
         });
       } catch {
         // 静默失败
@@ -281,8 +305,12 @@ export default function App() {
         const idx = filtered.findIndex((t) => t.id === trackId);
         if (idx >= 0) {
           await TrackPlayer.skip(idx);
+          await TrackPlayer.play();
           if (typeof position === "number" && position > 0) {
             await TrackPlayer.seekTo(position);
+          }
+          if (!savedPlayback.isPlaying) {
+            await TrackPlayer.pause();
           }
           const track = await TrackPlayer.getActiveTrack();
           setCurrentTrack(track);
@@ -355,7 +383,11 @@ export default function App() {
   };
 
   const onBack = () => {
-    setView("tabs");
+    if (selectedNovelId) {
+      setView("novel-detail");
+    } else {
+      setView("tabs");
+    }
   };
 
   const onShowPlayer = () => setView("player");
@@ -369,6 +401,50 @@ export default function App() {
     setSelectedNovelId(null);
     setView("tabs");
     setTab("novels");
+  };
+
+  const onOpenSettings = () => {
+    setView("settings");
+  };
+
+  const onBackFromSettings = () => {
+    setView("tabs");
+    setTab("mine");
+  };
+
+  const onClearCache = async () => {
+    try {
+      const books = await loadOCRNovels();
+      for (const book of books) {
+        try { await RNFS.unlink(getBookDir(book)); } catch {}
+      }
+      const imported = await loadImported();
+      for (const track of imported) {
+        const path = (track.url || "").replace("file://", "");
+        if (path) {
+          try { await RNFS.unlink(path); } catch {}
+        }
+      }
+      await Promise.all([
+        removeKey("@mp3player:ocr-novels"),
+        removeKey("@mp3player:imported"),
+        removeKey("@mp3player:playback"),
+        removeKey("@mp3player:recent"),
+      ]);
+      await TrackPlayer.reset();
+      await TrackPlayer.add(playlist);
+      await TrackPlayer.add(novels);
+      setOcrNovels([]);
+      setImportedTracks([]);
+      setRecent([]);
+      setCurrentTrack(null);
+      setScope("songs");
+      setTab("songs");
+      setView("tabs");
+      Alert.alert("已清除", "缓存已清空");
+    } catch (e) {
+      Alert.alert("清除失败", (e && e.message) || "请稍后重试");
+    }
   };
 
   const toggleFavorite = (id) => {
@@ -550,6 +626,15 @@ export default function App() {
         onDeleteOCRNovel={onDeleteOCRNovel}
       />
     );
+  } else if (view === "settings") {
+    content = (
+      <SettingsScreen
+        currentTrack={currentTrack}
+        onShowPlayer={onShowPlayer}
+        onBack={onBackFromSettings}
+        onClearCache={onClearCache}
+      />
+    );
   } else {
     content = (
       <SafeAreaView style={styles.container}>
@@ -559,7 +644,6 @@ export default function App() {
             <SongsScreen
               currentTrack={currentTrack}
               onSelect={onSelect}
-              onShowPlayer={onShowPlayer}
             />
           )}
           {tab === "novels" && (
@@ -576,7 +660,6 @@ export default function App() {
               allTracks={allTracks}
               currentTrack={currentTrack}
               onSelect={onSelect}
-              onShowPlayer={onShowPlayer}
               favorites={favorites}
               recent={recent}
               onImport={handleImport}
@@ -585,9 +668,11 @@ export default function App() {
               ocrNovels={ocrNovels}
               onDeleteOCRNovel={onDeleteOCRNovel}
               onAddChapters={onAddChapters}
+              onOpenSettings={onOpenSettings}
             />
           )}
         </View>
+        <NowPlayingBar currentTrack={currentTrack} onPress={onShowPlayer} />
         <CreateEmptyBookModal
           visible={showCreateEmptyBook}
           onCreate={onCreateEmptyBook}

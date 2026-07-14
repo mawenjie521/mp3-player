@@ -1,9 +1,9 @@
 import React, { useRef, useEffect } from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image, FlatList } from "react-native";
+import { View, Text, TouchableOpacity, StyleSheet, FlatList } from "react-native";
 import { COLORS } from "../data/constants";
 import BookCover from "./BookCover";
 
-function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, onLongPress, emptyText = "暂无内容" }) {
+function TrackList({ tracks, currentTrack, onSelect, onLongPress, emptyText = "暂无内容" }) {
   const listRef = useRef(null);
 
   useEffect(() => {
@@ -46,21 +46,6 @@ function TrackList({ tracks, currentTrack, onSelect, onShowPlayer, onLongPress, 
 
   return (
     <>
-      {currentTrack && (
-        <TouchableOpacity
-          style={styles.nowPlayingCard}
-          onPress={onShowPlayer}
-          activeOpacity={0.7}
-        >
-          <Image source={{ uri: currentTrack.artwork }} style={styles.nowPlayingThumb} />
-          <View style={styles.nowPlayingInfo}>
-            <Text style={styles.nowPlayingLabel}>正在播放</Text>
-            <Text style={styles.nowPlayingTitle} numberOfLines={1}>{currentTrack.title}</Text>
-            <Text style={styles.nowPlayingArtist} numberOfLines={1}>{currentTrack.artist}</Text>
-          </View>
-          <Text style={styles.nowPlayingArrow}>▶</Text>
-        </TouchableOpacity>
-      )}
       {tracks.length === 0 ? (
         <View style={styles.emptyState}>
           <Text style={styles.emptyText}>{emptyText}</Text>
@@ -148,46 +133,6 @@ const styles = StyleSheet.create({
   emptyText: {
     color: COLORS.secondaryText,
     fontSize: 14,
-  },
-  nowPlayingCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginHorizontal: 24,
-    marginBottom: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: 12,
-    backgroundColor: "#C20C0C0D",
-  },
-  nowPlayingThumb: {
-    width: 48,
-    height: 48,
-    borderRadius: 6,
-    backgroundColor: "#333",
-  },
-  nowPlayingInfo: {
-    flex: 1,
-    marginLeft: 12,
-  },
-  nowPlayingLabel: {
-    color: COLORS.secondaryText,
-    fontSize: 11,
-    marginBottom: 2,
-  },
-  nowPlayingTitle: {
-    color: COLORS.primaryText,
-    fontSize: 15,
-    fontWeight: "600",
-  },
-  nowPlayingArtist: {
-    color: COLORS.secondaryText,
-    fontSize: 12,
-    marginTop: 1,
-  },
-  nowPlayingArrow: {
-    color: COLORS.accent,
-    fontSize: 14,
-    marginLeft: 8,
   },
 });
 

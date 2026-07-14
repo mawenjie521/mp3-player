@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, Alert } from "r
 import { COLORS } from "../data/constants";
 import TrackList from "../components/TrackList";
 import BookCover from "../components/BookCover";
+import NowPlayingBar from "../components/NowPlayingBar";
 import { expandOCRChapters } from "../data/ocrNovels";
 
 function NovelDetailScreen({ novel, currentTrack, onSelect, onShowPlayer, onBack, onAddChapters, onDeleteOCRNovel }) {
@@ -54,13 +55,15 @@ function NovelDetailScreen({ novel, currentTrack, onSelect, onShowPlayer, onBack
         )}
       </View>
 
-      <TrackList
-        tracks={tracks}
-        currentTrack={currentTrack}
-        onSelect={(item) => onSelect(item, tracks, "novels")}
-        onShowPlayer={onShowPlayer}
-        emptyText="暂无章节"
-      />
+      <View style={{ flex: 1 }}>
+        <TrackList
+          tracks={tracks}
+          currentTrack={currentTrack}
+          onSelect={(item) => onSelect(item, tracks, "novels")}
+          emptyText="暂无章节"
+        />
+      </View>
+      <NowPlayingBar currentTrack={currentTrack} onPress={onShowPlayer} />
     </SafeAreaView>
   );
 }

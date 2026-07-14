@@ -4,7 +4,7 @@ import { COLORS } from "../data/constants";
 import { playlist } from "../data/playlist";
 import TrackList from "../components/TrackList";
 
-function SongsScreen({ currentTrack, onSelect, onShowPlayer }) {
+function SongsScreen({ currentTrack, onSelect }) {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -15,7 +15,6 @@ function SongsScreen({ currentTrack, onSelect, onShowPlayer }) {
         tracks={playlist}
         currentTrack={currentTrack}
         onSelect={(item) => onSelect(item, playlist, "songs")}
-        onShowPlayer={onShowPlayer}
         emptyText="还没有歌曲"
       />
     </View>
