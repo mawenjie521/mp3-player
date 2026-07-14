@@ -62,7 +62,16 @@ function TxtImportScreen({ onComplete, onCancel }) {
         return;
       }
       const detected = detectChapters(text);
-      setChapters(detected);
+      setChapters(
+        detected.map((ch, i) => ({
+          id: `ch-${i}`,
+          title: ch.title,
+          text: ch.body,
+          sourceImagePath: "",
+          audioPath: "",
+          ocrFailed: false,
+        }))
+      );
       setBookTitle(detectBookName(name));
       setStep("edit-chapters");
     } catch (e) {
