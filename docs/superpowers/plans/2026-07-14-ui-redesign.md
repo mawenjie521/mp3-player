@@ -12,7 +12,7 @@
 
 - **No automated tests.** Verification is Metro bundle + manual iOS simulator. Per [[mp3-player-verification-method]], DO NOT run `npm test` (exits 1 with "No tests found" - pre-existing, not a regression).
 - **Metro bundle command:** `npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/test-bundle.js`
-- **App.js line budget:** ≤300 lines (per [[mp3-player-phased-plan]]). Player split adds a view-selection branch but should not blow the budget.
+- **App.js current size:** 735 lines (memory's "≤300 lines" was from P4 and is stale; the file grew with later features). This redesign adds ~15 lines (`activeAccent` derivation + player view split). Do NOT attempt to trim App.js to 300 lines - out of scope.
 - **Accent color threading:** Shared components (`TrackList`, `NowPlayingBar`, `BottomNav`, `Controls`, `ProgressBar`) accept an optional `accentColor` prop defaulting to `COLORS.accent`. Screens with non-default accent pass it explicitly. This avoids a global theme context.
 - **No new dependencies.** Use Unicode characters for icons (no vector-icon library).
 - **Spec reference:** `docs/superpowers/specs/2026-07-14-ui-redesign-design.md` (commit `a37e352`).
@@ -2447,7 +2447,7 @@ Expected: PASS.
 - [ ] **Step 3: Verify App.js line count**
 
 Run: `wc -l App.js`
-Expected: ≤300 lines (per [[mp3-player-phased-plan]] budget). If over, identify removable boilerplate (consolidate view branches, dedupe props) and trim. If still over, flag to user.
+Expected: ~735-755 lines (current 735 + ~15 added for `activeAccent` derivation and player view split). If significantly over 760, identify removable boilerplate and trim.
 
 - [ ] **Step 4: Manual simulator verification handoff**
 
