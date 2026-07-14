@@ -757,12 +757,12 @@ const styles = StyleSheet.create({
     paddingBottom: 16,
   },
   chapterCard: {
-    backgroundColor: COLORS.card || COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 12,
     marginTop: 12,
     borderWidth: 1,
-    borderColor: COLORS.border || "#e0e0e0",
+    borderColor: COLORS.separator,
   },
   titleInput: {
     color: COLORS.primaryText,
@@ -771,17 +771,17 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border || "#e0e0e0",
+    borderBottomColor: COLORS.separator,
   },
   bookTitleInput: {
     color: COLORS.primaryText,
     fontSize: 16,
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: COLORS.card || COLORS.background,
+    backgroundColor: COLORS.surface,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: COLORS.border || "#e0e0e0",
+    borderColor: COLORS.separator,
   },
   preview: {
     color: COLORS.secondaryText,
@@ -799,7 +799,7 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 12,
-    backgroundColor: COLORS.border || "#e0e0e0",
+    backgroundColor: COLORS.separator,
   },
   smallBtnText: {
     color: COLORS.primaryText,
@@ -808,7 +808,7 @@ const styles = StyleSheet.create({
   progressBar: {
     width: "80%",
     height: 8,
-    backgroundColor: COLORS.border || "#e0e0e0",
+    backgroundColor: COLORS.separator,
     borderRadius: 4,
     marginTop: 16,
     overflow: "hidden",
@@ -822,15 +822,14 @@ const styles = StyleSheet.create({
 export default TxtImportScreen;
 ```
 
-- [ ] **Step 2: 确认 `COLORS` 调色板字段**
+- [ ] **Step 2: 确认 `COLORS` 调色板字段（已预检）**
 
-Run: `grep -n "card\|border\|accentNovel\|primaryText\|secondaryText\|background" src/data/constants.js`
-Expected: 列出 `COLORS` 对象的所有字段。若 `card` 或 `border` 不存在，Step 1 中的 `COLORS.card || COLORS.background` 和 `COLORS.border || "#e0e0e0"` 回退会生效（使用 `background` 和硬编码灰色）。若想用项目主色调，根据 grep 结果把 `#e0e0e0` 替换为项目实际的边框色。
+`src/data/constants.js` 的 `COLORS` 对象已包含本任务用到的所有字段：`background` / `surface`（卡片底色）/ `separator`（边框/分隔线）/ `primaryText` / `secondaryText` / `accentNovel`。无需修改 constants.js。若实现时发现某字段缺失，回退到 `COLORS.background`（卡片）或 `COLORS.separator`（边框）。
 
 - [ ] **Step 3: Metro bundle 验证**
 
 Run: `npx react-native bundle --platform ios --dev false --entry-file index.js --bundle-output /tmp/test-bundle.js`
-Expected: 构建成功。若报「Unable to resolve module txtChapterParser」，确认 Task 1 已完成。若报 `COLORS.xxx is undefined`，按 Step 2 结果修正。
+Expected: 构建成功。若报「Unable to resolve module txtChapterParser」，确认 Task 1 已完成。
 
 - [ ] **Step 4: Commit**
 
