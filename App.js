@@ -32,6 +32,7 @@ import SongsScreen from "./src/screens/SongsScreen";
 import NovelsScreen from "./src/screens/NovelsScreen";
 import MineScreen from "./src/screens/MineScreen";
 import OcrImportScreen from "./src/screens/OcrImportScreen";
+import TxtImportScreen from "./src/screens/TxtImportScreen";
 import NovelDetailScreen from "./src/screens/NovelDetailScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
 import BottomNav from "./src/components/BottomNav";
@@ -477,9 +478,21 @@ export default function App() {
     setView("ocr-import");
   };
 
+  const onStartTxtImport = () => {
+    setView("txt-import");
+  };
+
+  const onTxtImportComplete = async (book) => {
+    const next = await saveOCRNovel(book);
+    setOcrNovels(next);
+    setView("tabs");
+    setTab("novels");
+  };
+
   const onAdd = () => {
     Alert.alert("添加小说", null, [
       { text: "导入文件创建", onPress: onStartImport },
+      { text: "导入 TXT 整本", onPress: onStartTxtImport },
       { text: "创建空小说", onPress: () => setShowCreateEmptyBook(true) },
       { text: "取消", style: "cancel" },
     ]);
@@ -619,6 +632,13 @@ export default function App() {
         onCancel={onOcrImportCancel}
         existingBook={appendTargetBook}
         onAppendComplete={onAppendComplete}
+      />
+    );
+  } else if (view === "txt-import") {
+    content = (
+      <TxtImportScreen
+        onComplete={onTxtImportComplete}
+        onCancel={() => setView("tabs")}
       />
     );
   } else if (view === "novel-detail" && selectedCard) {
