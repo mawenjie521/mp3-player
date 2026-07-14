@@ -8,7 +8,7 @@ function formatTime(seconds) {
   return `${mins}:${secs < 10 ? "0" : ""}${secs}`;
 }
 
-function ProgressBar({ position, duration, onSeek }) {
+function ProgressBar({ position, duration, onSeek, accentColor = COLORS.accent }) {
   const [isDragging, setIsDragging] = useState(false);
   const [dragValue, setDragValue] = useState(0);
   const containerWidth = useRef(0);
@@ -58,7 +58,7 @@ function ProgressBar({ position, duration, onSeek }) {
         {...panResponder.panHandlers}
       >
         <View style={styles.trackBackground} />
-        <View style={[styles.trackFill, { width: `${progress * 100}%` }]} />
+        <View style={[styles.trackFill, { width: `${progress * 100}%`, backgroundColor: accentColor }]} />
         <View style={[styles.thumb, { left: `${progress * 100}%` }]} />
       </View>
       <View style={styles.timeContainer}>
@@ -86,7 +86,7 @@ const styles = StyleSheet.create({
     top: 17,
     height: 6,
     borderRadius: 3,
-    backgroundColor: "#ffffff40",
+    backgroundColor: COLORS.playerTextDim,
   },
   trackFill: {
     position: "absolute",
@@ -94,7 +94,6 @@ const styles = StyleSheet.create({
     top: 17,
     height: 6,
     borderRadius: 3,
-    backgroundColor: COLORS.accent,
   },
   thumb: {
     position: "absolute",
@@ -102,7 +101,7 @@ const styles = StyleSheet.create({
     width: 16,
     height: 16,
     borderRadius: 8,
-    backgroundColor: COLORS.primaryText,
+    backgroundColor: COLORS.playerText,
     marginLeft: -8,
   },
   timeContainer: {
@@ -111,7 +110,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   time: {
-    color: COLORS.secondaryText,
+    color: COLORS.playerTextDim,
     fontSize: 11,
     fontVariant: ["tabular-nums"],
   },

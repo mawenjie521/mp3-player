@@ -28,7 +28,15 @@ function Lyrics({ lrc, position }) {
       {visible.map(({ idx, text }) => {
         const isCurrent = idx === currentIndex;
         return (
-          <Text key={idx} style={[styles.lyricLine, isCurrent && styles.lyricCurrent]} numberOfLines={1}>
+          <Text
+            key={idx}
+            style={[
+              styles.lyricLine,
+              isCurrent && styles.lyricCurrent,
+              { color: isCurrent ? COLORS.playerText : COLORS.playerTextDim },
+            ]}
+            numberOfLines={1}
+          >
             {text}
           </Text>
         );
@@ -47,19 +55,17 @@ const styles = StyleSheet.create({
   },
   lyricLine: {
     fontSize: 14,
-    color: COLORS.secondaryText,
-    opacity: 0.4,
+    opacity: 0.5,
     marginVertical: 4,
     textAlign: "center",
   },
   lyricCurrent: {
     fontSize: 17,
-    color: COLORS.primaryText,
     opacity: 1,
     fontWeight: "600",
   },
   emptyText: {
-    color: COLORS.secondaryText,
+    color: COLORS.playerTextDim,
     fontSize: 14,
   },
 });
