@@ -569,6 +569,10 @@ export default function App() {
   const selectedCard = view === "novel-detail"
     ? novelCards.find((c) => c.id === selectedNovelId)
     : null;
+  const isNovelContext = view === "player"
+    ? (currentTrack?.isNovel || currentTrack?.isOCR)
+    : (tab === "novels" || (tab === "mine" && mineSubTab === "ocr"));
+  const activeAccent = isNovelContext ? COLORS.accentNovel : COLORS.accent;
   let content;
   if (initError) {
     content = (
@@ -638,7 +642,6 @@ export default function App() {
   } else {
     content = (
       <SafeAreaView style={styles.container}>
-        <View style={styles.glowTop} />
         <View style={{ flex: 1 }}>
           {tab === "songs" && (
             <SongsScreen
@@ -672,13 +675,20 @@ export default function App() {
             />
           )}
         </View>
-        <NowPlayingBar currentTrack={currentTrack} onPress={onShowPlayer} />
+        <NowPlayingBar
+          currentTrack={currentTrack}
+          position={position}
+          duration={duration}
+          isPlaying={isPlaying}
+          onPress={onShowPlayer}
+          accentColor={activeAccent}
+        />
         <CreateEmptyBookModal
           visible={showCreateEmptyBook}
           onCreate={onCreateEmptyBook}
           onCancel={() => setShowCreateEmptyBook(false)}
         />
-        <BottomNav activeTab={tab} onChange={setTab} />
+        <BottomNav activeTab={tab} onChange={setTab} accentColor={activeAccent} />
       </SafeAreaView>
     );
   }
@@ -690,15 +700,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
-  },
-  glowTop: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 280,
-    backgroundColor: COLORS.accent,
-    opacity: 0.05,
   },
   loading: {
     color: COLORS.primaryText,
