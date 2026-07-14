@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, FlatList, Alert } from "react-native";
-import { COLORS } from "../data/constants";
+import { COLORS, TYPO } from "../data/constants";
 import BookCover from "../components/BookCover";
 
 function NovelsScreen({ cards, currentTrack, onSelectNovel, onAdd, onDeleteOCRNovel }) {
@@ -23,19 +23,23 @@ function NovelsScreen({ cards, currentTrack, onSelectNovel, onAdd, onDeleteOCRNo
     const playing = isCardPlaying(card);
     return (
       <TouchableOpacity
-        style={styles.row}
+        style={styles.cell}
         onPress={() => onSelectNovel(card)}
         onLongPress={() => handleLongPress(card)}
         activeOpacity={0.6}
       >
-        <BookCover uri={card.coverImage} title={card.title} style={styles.cover} />
-        <View style={styles.info}>
-          <Text style={[styles.title, playing && styles.titleActive]} numberOfLines={1}>
-            {card.title}
-          </Text>
-          <Text style={styles.meta}>{card.chapterCount} 章</Text>
+        <View style={styles.coverWrap}>
+          <BookCover uri={card.coverImage} title={card.title} style={styles.cover} accentColor={COLORS.accentNovel} />
+          {playing && (
+            <View style={styles.playingBadge}>
+              <Text style={styles.playingBadgeIcon}>▶</Text>
+            </View>
+          )}
         </View>
-        {playing && <Text style={styles.activeIcon}>▶</Text>}
+        <Text style={styles.cellTitle} numberOfLines={1}>{card.title}</Text>
+        <Text style={styles.cellMeta}>
+          {card.chapterCount} 章{card.isOCR ? " · OCR" : ""}
+        </Text>
       </TouchableOpacity>
     );
   };
@@ -44,8 +48,8 @@ function NovelsScreen({ cards, currentTrack, onSelectNovel, onAdd, onDeleteOCRNo
     <View style={styles.container}>
       <View style={styles.header}>
         <View>
-          <Text style={styles.headerTitle}>小说</Text>
-          <Text style={styles.subtitle}>共 {cards.length} 本</Text>
+          <Text style={[styles.headerTitle, TYPO.titleLarge]}>小说</Text>
+          <Text style={[styles.subtitle, TYPO.caption]}>{cards.length} 本</Text>
         </View>
         <TouchableOpacity onPress={onAdd} style={styles.addBtn}>
           <Text style={styles.addBtnText}>+</Text>
@@ -60,7 +64,9 @@ function NovelsScreen({ cards, currentTrack, onSelectNovel, onAdd, onDeleteOCRNo
           data={cards}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          numColumns={2}
+          columnWrapperStyle={styles.row}
+          contentContainerStyle={styles.listContent}
         />
       )}
     </View>
@@ -81,66 +87,78 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     color: COLORS.primaryText,
-    fontSize: 22,
-    fontWeight: "700",
   },
   subtitle: {
     color: COLORS.secondaryText,
-    fontSize: 13,
     marginTop: 4,
   },
   addBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.accent,
+    borderColor: COLORS.accentNovel,
     alignItems: "center",
     justifyContent: "center",
   },
   addBtnText: {
-    color: COLORS.accent,
+    color: COLORS.accentNovel,
     fontSize: 22,
     fontWeight: "400",
     marginTop: -3,
   },
+  listContent: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
   row: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    gap: 12,
+    marginBottom: 16,
+  },
+  cell: {
+    flex: 1,
+  },
+  coverWrap: {
+    position: "relative",
+    aspectRatio: 1,
+    marginBottom: 6,
   },
   cover: {
-    width: 48,
-    height: 48,
-    borderRadius: 6,
-    backgroundColor: "#333",
+    width: "100%",
+    height: "100%",
+    borderRadius: 8,
+    backgroundColor: COLORS.separator,
   },
-  info: {
-    flex: 1,
-    marginLeft: 12,
+  playingBadge: {
+    position: "absolute",
+    bottom: 6,
+    left: 6,
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: COLORS.surface,
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
+    elevation: 2,
   },
-  title: {
+  playingBadgeIcon: {
+    color: COLORS.accentNovel,
+    fontSize: 12,
+    marginLeft: 2,
+  },
+  cellTitle: {
     color: COLORS.primaryText,
-    fontSize: 16,
+    fontSize: 14,
+    fontWeight: "600",
   },
-  titleActive: {
-    color: COLORS.accent,
-  },
-  meta: {
+  cellMeta: {
     color: COLORS.secondaryText,
-    fontSize: 13,
+    fontSize: 12,
     marginTop: 2,
-  },
-  activeIcon: {
-    color: COLORS.accent,
-    fontSize: 16,
-    marginLeft: 8,
-  },
-  separator: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: "#ffffff10",
-    marginLeft: 84,
   },
   emptyState: {
     flex: 1,
@@ -150,7 +168,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     color: COLORS.secondaryText,
-    fontSize: 14,
+    fontSize: 16,
   },
 });
 
