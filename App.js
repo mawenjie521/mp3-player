@@ -35,11 +35,13 @@ import OcrImportScreen from "./src/screens/OcrImportScreen";
 import TxtImportScreen from "./src/screens/TxtImportScreen";
 import NovelDetailScreen from "./src/screens/NovelDetailScreen";
 import SettingsScreen from "./src/screens/SettingsScreen";
+import TTSSettingsScreen from "./src/screens/TTSSettingsScreen";
 import BottomNav from "./src/components/BottomNav";
 import NowPlayingBar from "./src/components/NowPlayingBar";
 import ErrorBoundary from "./src/error/ErrorBoundary";
 import RNFS from "react-native-fs";
 import CreateEmptyBookModal from "./src/components/CreateEmptyBookModal";
+import { loadTTSSettings, getVoices } from "./src/data/tts";
 
 export default function App() {
   const [currentTrack, setCurrentTrack] = useState(null);
@@ -58,6 +60,7 @@ export default function App() {
   const [ocrNovels, setOcrNovels] = useState([]);
   const [appendTargetBook, setAppendTargetBook] = useState(null);
   const [showCreateEmptyBook, setShowCreateEmptyBook] = useState(false);
+  const [ttsVoiceLabel, setTtsVoiceLabel] = useState("系统默认");
   const [selectedNovelId, setSelectedNovelId] = useState(null);
   const ocrNovelChapters = useMemo(() => expandOCRChapters(ocrNovels), [ocrNovels]);
   const novelCards = useMemo(
@@ -414,6 +417,31 @@ export default function App() {
     setTab("mine");
   };
 
+  const computeTTSVoiceLabel = async () => {
+    try {
+      const settings = await loadTTSSettings();
+      if (!settings.voice) return "系统默认";
+      const voices = await getVoices();
+      const found = voices.find((v) => v.identifier === settings.voice);
+      return found ? found.name : "系统默认";
+    } catch {
+      return "系统默认";
+    }
+  };
+
+  useEffect(() => {
+    computeTTSVoiceLabel().then(setTtsVoiceLabel);
+  }, []);
+
+  const onTTSSettings = () => {
+    setView("tts-settings");
+  };
+
+  const onBackFromTTSSettings = () => {
+    computeTTSVoiceLabel().then(setTtsVoiceLabel);
+    setView("settings");
+  };
+
   const onClearCache = async () => {
     try {
       const books = await loadOCRNovels();
@@ -658,7 +686,13 @@ export default function App() {
       <SettingsScreen
         onBack={onBackFromSettings}
         onClearCache={onClearCache}
+        onTTSSettings={onTTSSettings}
+        ttsVoiceLabel={ttsVoiceLabel}
       />
+    );
+  } else if (view === "tts-settings") {
+    content = (
+      <TTSSettingsScreen onBack={onBackFromTTSSettings} />
     );
   } else {
     content = (
