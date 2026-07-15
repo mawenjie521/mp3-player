@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, SafeAreaView, ScrollView, Alert } from "react-native";
 import { COLORS, TYPO, APP_VERSION } from "../data/constants";
 
-function SettingsScreen({ onBack, onClearCache }) {
+function SettingsScreen({ onBack, onClearCache, onTTSSettings, ttsVoiceLabel }) {
   const handleClearCache = () => {
     Alert.alert(
       "清除缓存",
@@ -28,6 +28,13 @@ function SettingsScreen({ onBack, onClearCache }) {
         <View style={styles.headerBtn} />
       </View>
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.list}>
+        <TouchableOpacity style={styles.row} onPress={onTTSSettings}>
+          <Text style={styles.rowText}>TTS 语音</Text>
+          <View style={styles.rowRight}>
+            <Text style={styles.rowValue}>{ttsVoiceLabel || "系统默认"}</Text>
+            <Text style={styles.rowArrow}>›</Text>
+          </View>
+        </TouchableOpacity>
         <TouchableOpacity style={styles.row} onPress={handleClearCache}>
           <Text style={styles.rowText}>清除缓存</Text>
           <Text style={styles.rowArrow}>›</Text>
@@ -91,6 +98,10 @@ const styles = StyleSheet.create({
   rowValue: {
     color: COLORS.secondaryText,
     fontSize: 14,
+  },
+  rowRight: {
+    flexDirection: "row",
+    alignItems: "center",
   },
   rowArrow: {
     color: COLORS.tertiaryText,

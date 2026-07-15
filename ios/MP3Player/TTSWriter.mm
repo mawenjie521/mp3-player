@@ -43,43 +43,45 @@ static AVSpeechSynthesisVoice *selectVoice(NSString *voiceId) {
   }
 
   NSArray<AVSpeechSynthesisVoice *> *allVoices = [AVSpeechSynthesisVoice speechVoices];
-
+  NSMutableArray<AVSpeechSynthesisVoice *> *zhVoices = [NSMutableArray array];
   for (AVSpeechSynthesisVoice *v in allVoices) {
-    if ([v.language hasPrefix:@"zh-CN"] &&
-        [v.identifier containsString:@"premium"]) {
-      TTSLog(@"selected premium voice: %@ (id=%@)", v.name, v.identifier);
-      return v;
+    if ([v.language hasPrefix:@"zh"]) {
+      [zhVoices addObject:v];
     }
   }
 
-  for (AVSpeechSynthesisVoice *v in allVoices) {
-    if ([v.language hasPrefix:@"zh-Hans"] &&
-        [v.identifier containsString:@"premium"]) {
-      TTSLog(@"selected premium voice: %@ (id=%@)", v.name, v.identifier);
-      return v;
-    }
-  }
+  NSArray<AVSpeechSynthesisVoice *> *sorted = [zhVoices sortedArrayUsingComparator:^NSComparisonResult(AVSpeechSynthesisVoice *a, AVSpeechSynthesisVoice *b) {
+    if (a.quality > b.quality) return NSOrderedAscending;
+    if (a.quality < b.quality) return NSOrderedDescending;
+    return NSOrderedSame;
+  }];
 
-  for (AVSpeechSynthesisVoice *v in allVoices) {
-    if ([v.language hasPrefix:@"zh-CN"] &&
-        [v.identifier containsString:@"enhanced"]) {
-      TTSLog(@"selected enhanced voice: %@ (id=%@)", v.name, v.identifier);
-      return v;
-    }
-  }
-
-  for (AVSpeechSynthesisVoice *v in allVoices) {
-    if ([v.language hasPrefix:@"zh-Hans"] &&
-        [v.identifier containsString:@"enhanced"]) {
-      TTSLog(@"selected enhanced voice: %@ (id=%@)", v.name, v.identifier);
-      return v;
-    }
+  if (sorted.count > 0) {
+    AVSpeechSynthesisVoice *best = sorted[0];
+    TTSLog(@"selected best voice: %@ (id=%@, quality=%ld)", best.name, best.identifier, (long)best.quality);
+    return best;
   }
 
   AVSpeechSynthesisVoice *fallback = [AVSpeechSynthesisVoice voiceWithLanguage:@"zh-CN"];
   TTSLog(@"fallback voice: %@ (id=%@)", fallback.name, fallback.identifier);
   return fallback;
 }
+
+static float rateToAVRate(float rateF) {
+  if (rateF == 0) {
+    return AVSpeechUtteranceDefaultSpeechRate;
+  } else if (rateF > 0) {
+    return AVSpeechUtteranceDefaultSpeechRate +
+      rateF * (AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceDefaultSpeechRate) / 100.0;
+  } else {
+    return AVSpeechUtteranceMinimumSpeechRate +
+      (-rateF) * (AVSpeechUtteranceDefaultSpeechRate - AVSpeechUtteranceMinimumSpeechRate) / 100.0;
+  }
+}
+
+@interface TTSWriter ()
+@property (nonatomic, strong) AVSpeechSynthesizer *previewSynth;
+@end
 
 @implementation TTSWriter
 
@@ -104,15 +106,7 @@ RCT_EXPORT_METHOD(synthesize:(NSString *)text
     utterance.voice = selectVoice(voiceId);
 
     float rateF = [rateVal floatValue];
-    if (rateF == 0) {
-      utterance.rate = AVSpeechUtteranceDefaultSpeechRate;
-    } else if (rateF > 0) {
-      utterance.rate = AVSpeechUtteranceDefaultSpeechRate +
-        rateF * (AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceDefaultSpeechRate) / 100.0;
-    } else {
-      utterance.rate = AVSpeechUtteranceMinimumSpeechRate +
-        (-rateF) * (AVSpeechUtteranceDefaultSpeechRate - AVSpeechUtteranceMinimumSpeechRate) / 100.0;
-    }
+    utterance.rate = rateToAVRate(rateF);
 
     TTSLog(@"synthesize: text=%lu chars, voice=%@ (id=%@), rate=%.1f->%.2f, output=%@",
            (unsigned long)text.length,
@@ -215,24 +209,73 @@ RCT_EXPORT_METHOD(synthesize:(NSString *)text
   });
 }
 
+RCT_EXPORT_METHOD(previewVoice:(NSString *)voiceId
+                           rate:(nonnull NSNumber *)rateVal
+                           text:(NSString *)text
+                      resolver:(RCTPromiseResolveBlock)resolve
+                      rejecter:(RCTPromiseRejectBlock)reject)
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (!self.previewSynth) {
+      self.previewSynth = [[AVSpeechSynthesizer alloc] init];
+    }
+    [self.previewSynth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+
+    AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc] initWithString:text.length > 0 ? text : @""];
+    utterance.voice = selectVoice(voiceId);
+    utterance.rate = rateToAVRate([rateVal floatValue]);
+
+    TTSLog(@"previewVoice: voice=%@ (id=%@), rate=%.1f->%.2f, text=%lu chars",
+           utterance.voice.name, utterance.voice.identifier,
+           [rateVal floatValue], utterance.rate, (unsigned long)utterance.speechString.length);
+
+    [self.previewSynth speak:utterance];
+    resolve(@{ @"success": @YES });
+  });
+}
+
 RCT_EXPORT_METHOD(getVoices:(RCTPromiseResolveBlock)resolve
                        rejecter:(RCTPromiseRejectBlock)reject)
 {
-  NSMutableArray *result = [NSMutableArray array];
   NSArray<AVSpeechSynthesisVoice *> *voices = [AVSpeechSynthesisVoice speechVoices];
+  NSMutableArray<NSMutableDictionary *> *zhVoices = [NSMutableArray array];
 
   for (AVSpeechSynthesisVoice *v in voices) {
     if (![v.language hasPrefix:@"zh"]) continue;
-    [result addObject:@{
+
+    NSString *qualityStr;
+    switch (v.quality) {
+      case AVVoiceQualityPremium: qualityStr = @"premium"; break;
+      case AVVoiceQualityEnhanced: qualityStr = @"enhanced"; break;
+      case AVVoiceQualityCompact:  qualityStr = @"compact"; break;
+      default:                     qualityStr = @"default"; break;
+    }
+
+    [zhVoices addObject:[NSMutableDictionary dictionaryWithDictionary:@{
       @"identifier": v.identifier ?: @"",
       @"name": v.name ?: @"",
       @"language": v.language ?: @"",
-      @"quality": ([v.identifier containsString:@"premium"]) ? @"premium" :
-                  ([v.identifier containsString:@"enhanced"]) ? @"enhanced" : @"compact",
-    }];
+      @"quality": qualityStr,
+      @"_qv": @(v.quality),
+      @"downloaded": @YES,
+    }]];
   }
 
-  TTSLog(@"getVoices: returning %lu zh voices", (unsigned long)result.count);
+  [zhVoices sortUsingComparator:^NSComparisonResult(NSDictionary *a, NSDictionary *b) {
+    NSInteger qa = [a[@"_qv"] integerValue];
+    NSInteger qb = [b[@"_qv"] integerValue];
+    if (qa > qb) return NSOrderedAscending;
+    if (qa < qb) return NSOrderedDescending;
+    return NSOrderedSame;
+  }];
+
+  NSMutableArray *result = [NSMutableArray array];
+  for (NSMutableDictionary *d in zhVoices) {
+    [d removeObjectForKey:@"_qv"];
+    [result addObject:d];
+  }
+
+  TTSLog(@"getVoices: returning %lu zh voices (sorted by quality desc)", (unsigned long)result.count);
   resolve(result);
 }
 
