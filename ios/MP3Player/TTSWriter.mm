@@ -67,6 +67,22 @@ static AVSpeechSynthesisVoice *selectVoice(NSString *voiceId) {
   return fallback;
 }
 
+static float rateToAVRate(float rateF) {
+  if (rateF == 0) {
+    return AVSpeechUtteranceDefaultSpeechRate;
+  } else if (rateF > 0) {
+    return AVSpeechUtteranceDefaultSpeechRate +
+      rateF * (AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceDefaultSpeechRate) / 100.0;
+  } else {
+    return AVSpeechUtteranceMinimumSpeechRate +
+      (-rateF) * (AVSpeechUtteranceDefaultSpeechRate - AVSpeechUtteranceMinimumSpeechRate) / 100.0;
+  }
+}
+
+@interface TTSWriter ()
+@property (nonatomic, strong) AVSpeechSynthesizer *previewSynth;
+@end
+
 @implementation TTSWriter
 
 RCT_EXPORT_MODULE(TTSWriter);
@@ -90,15 +106,7 @@ RCT_EXPORT_METHOD(synthesize:(NSString *)text
     utterance.voice = selectVoice(voiceId);
 
     float rateF = [rateVal floatValue];
-    if (rateF == 0) {
-      utterance.rate = AVSpeechUtteranceDefaultSpeechRate;
-    } else if (rateF > 0) {
-      utterance.rate = AVSpeechUtteranceDefaultSpeechRate +
-        rateF * (AVSpeechUtteranceMaximumSpeechRate - AVSpeechUtteranceDefaultSpeechRate) / 100.0;
-    } else {
-      utterance.rate = AVSpeechUtteranceMinimumSpeechRate +
-        (-rateF) * (AVSpeechUtteranceDefaultSpeechRate - AVSpeechUtteranceMinimumSpeechRate) / 100.0;
-    }
+    utterance.rate = rateToAVRate(rateF);
 
     TTSLog(@"synthesize: text=%lu chars, voice=%@ (id=%@), rate=%.1f->%.2f, output=%@",
            (unsigned long)text.length,
@@ -198,6 +206,31 @@ RCT_EXPORT_METHOD(synthesize:(NSString *)text
         }
       }];
     }];
+  });
+}
+
+RCT_EXPORT_METHOD(previewVoice:(NSString *)voiceId
+                           rate:(nonnull NSNumber *)rateVal
+                           text:(NSString *)text
+                      resolver:(RCTPromiseResolveBlock)resolve
+                      rejecter:(RCTPromiseRejectBlock)reject)
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    if (!self.previewSynth) {
+      self.previewSynth = [[AVSpeechSynthesizer alloc] init];
+    }
+    [self.previewSynth stopSpeakingAtBoundary:AVSpeechBoundaryImmediate];
+
+    AVSpeechUtterance *utterance = [[AVSpeechUtterance alloc] initWithString:text.length > 0 ? text : @""];
+    utterance.voice = selectVoice(voiceId);
+    utterance.rate = rateToAVRate([rateVal floatValue]);
+
+    TTSLog(@"previewVoice: voice=%@ (id=%@), rate=%.1f->%.2f, text=%lu chars",
+           utterance.voice.name, utterance.voice.identifier,
+           [rateVal floatValue], utterance.rate, (unsigned long)utterance.speechString.length);
+
+    [self.previewSynth speak:utterance];
+    resolve(@{ @"success": @YES });
   });
 }
 
