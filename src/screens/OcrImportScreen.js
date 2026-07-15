@@ -16,7 +16,7 @@ import DocumentPicker from "react-native-document-picker";
 import TextRecognition, { TextRecognitionScript } from "@react-native-ml-kit/text-recognition";
 import RNFS from "react-native-fs";
 import { COLORS } from "../data/constants";
-import { synthesizeChapter } from "../data/tts";
+import { synthesizeChapter, getAudioExtForMode } from "../data/tts";
 import { getBookDir, computeBookDir } from "../data/ocrNovels";
 import OcrChapterEditScreen from "./OcrChapterEditScreen";
 
@@ -226,6 +226,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
     }
     setStep("tts-generating");
     setProgress({ current: 0, total: chapters.length });
+    const audioExt = await getAudioExtForMode();
 
     let coverPath = existingBook?.coverImage || "";
     const needsCoverCopy = isAppendMode ? !existingBook?.coverImage : true;
@@ -255,7 +256,7 @@ function OcrImportScreen({ onComplete, onCancel, existingBook, onAppendComplete 
         setProgress({ current: i + 1, total: chapters.length });
         continue;
       }
-      const audioPath = `file://${bookDir}/${ch.title}.m4a`;
+      const audioPath = `file://${bookDir}/${ch.title}.${audioExt}`;
       try {
         await synthesizeChapter(ch.text, audioPath.replace("file://", ""));
         completedChapters.push({ ...ch, audioPath });
